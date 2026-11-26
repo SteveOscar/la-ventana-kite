@@ -48,6 +48,15 @@ export class CameraRig {
     this.initialized = false;
   }
 
+  private introT = 0;
+  private introDur = 0;
+
+  /** Swoop down from high over the bay to the rider. */
+  intro(secs: number) {
+    this.introT = secs;
+    this.introDur = secs;
+  }
+
   attachMouse(el: HTMLElement) {
     let lastX = 0, lastY = 0;
     el.addEventListener('pointerdown', (e) => {
@@ -130,6 +139,17 @@ export class CameraRig {
       }
     }
 
+    if (this.introT > 0) {
+      this.introT = Math.max(0, this.introT - dt);
+      const k = this.introT / this.introDur;
+      const e = k * k * (3 - 2 * k);
+      // Start high and wide over the water, offshore of the rider, and ease in.
+      const a = yaw + 2.4;
+      desired.x += (Math.sin(a) * 140 + 60) * e;
+      desired.y += 70 * e;
+      desired.z += -Math.cos(a) * 140 * e;
+      look.lerp(kite, 0.3 * e);
+    }
     const floor = Math.max(0, ground.height(desired.x, desired.z)) + 1.2;
     if (desired.y < floor) desired.y = floor;
     if (!this.initialized) {
@@ -137,7 +157,7 @@ export class CameraRig {
       this.look.copy(look);
       this.initialized = true;
     }
-    const rate = this.mode === 'side' ? 2.2 : 4.5;
+    const rate = this.introT > 0 ? 9 : this.mode === 'side' ? 2.2 : 4.5;
     this.pos.x = damp(this.pos.x, desired.x, rate, dt);
     this.pos.y = damp(this.pos.y, desired.y, rate * 0.8, dt);
     this.pos.z = damp(this.pos.z, desired.z, rate, dt);

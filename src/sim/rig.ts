@@ -159,10 +159,6 @@ export class Rig {
     this.modeTime = 0;
   }
 
-  surface(env: RigEnv, x: number, z: number) {
-    return env.surface(x, z);
-  }
-
   step(dt: number, input: RigInput, env: RigEnv) {
     this.modeTime += dt;
     this.sinceLanding += dt;

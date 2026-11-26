@@ -47,6 +47,7 @@ const shot = async (name) => {
     const r = g.rig;
     return {
       fps: Math.round(g.fps),
+      cpuMs: +g.frameMs.toFixed(2),
       mode: r.mode,
       kite: r.kite.mode,
       speedKn: +(r.speed / 0.5144).toFixed(1),

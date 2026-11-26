@@ -58,6 +58,7 @@ export class Hud {
   private map: HTMLCanvasElement;
   private mapBase: HTMLCanvasElement;
   private mapBounds = [0, 1, 0, 1];
+  private mapLabels: { t: string; x: number; z: number; land: boolean }[] = [];
   private help: HTMLElement;
   private stateBadge: HTMLElement;
   private relaunchBar: HTMLElement;
@@ -240,15 +241,14 @@ export class Hud {
     for (const b of d.world.buildings) {
       ctx.fillRect(((b[0] - X0) / (X1 - X0)) * W - 0.5, ((b[1] - Z0) / (Z1 - Z0)) * H - 0.5, 1, 1);
     }
-    ctx.font = 'bold 13px "Avenir Next", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(40,25,10,0.85)';
     const lm = d.world.landmarks;
-    const label = (t: string, x: number, z: number) => ctx.fillText(t, ((x - X0) / (X1 - X0)) * W, ((z - Z0) / (Z1 - Z0)) * H);
-    label('El Sargento', lm.elSargento.x - 1900, lm.elSargento.z);
-    label('La Ventana', lm.mainBeach.x - 1800, lm.mainBeach.z + 500);
-    label('Aguas termales', lm.hotSprings.x - 2400, lm.hotSprings.z);
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    label('Canal de Cerralvo', 3000, -6000);
+    this.mapLabels = [
+      { t: 'El Sargento', x: lm.elSargento.x - 260, z: lm.elSargento.z, land: true },
+      { t: 'La Ventana', x: lm.mainBeach.x - 260, z: lm.mainBeach.z + 150, land: true },
+      { t: 'Aguas termales', x: lm.hotSprings.x - 260, z: lm.hotSprings.z, land: true },
+      { t: 'Campamento', x: lm.campNorth.x - 260, z: lm.campNorth.z, land: true },
+      { t: 'Canal de Cerralvo', x: 3200, z: -5200, land: false },
+    ];
     this.mapBounds = [X0, X1, Z0, Z1];
   }
 
@@ -414,6 +414,15 @@ export class Hud {
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(this.mapBase, bx - srcW / 2, bz - srcW / 2, srcW, srcW, 0, 0, W, H);
     const toMap = (x: number, z: number) => [W / 2 + (x - rig.pos.x) * s, H / 2 + (z - rig.pos.z) * s];
+    ctx.font = '600 17px "Avenir Next", system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    for (const l of this.mapLabels) {
+      const [x, y] = toMap(l.x, l.z);
+      if (x < -40 || x > W + 200 || y < 0 || y > H + 20) continue;
+      ctx.fillStyle = l.land ? 'rgba(50,30,15,0.85)' : 'rgba(255,255,255,0.75)';
+      ctx.fillText(l.t, x, y);
+    }
+    ctx.textAlign = 'start';
     for (const m of f.markers) {
       const [x, y] = toMap(m.x, m.z);
       ctx.fillStyle = m.color;

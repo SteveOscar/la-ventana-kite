@@ -225,6 +225,7 @@ export class Game {
     this.hud.setObjective(null);
     mode.start(this);
     this.cam.snap();
+    this.cam.intro(3.2);
     this.setState('playing');
   }
 
@@ -407,7 +408,16 @@ export class Game {
     });
   }
 
+  /** Smoothed CPU time spent per frame (ms), for performance checks. */
+  frameMs = 0;
+
   private frame(now: number) {
+    const t0 = performance.now();
+    this.frameInner(now);
+    this.frameMs += (performance.now() - t0 - this.frameMs) * 0.05;
+  }
+
+  private frameInner(now: number) {
     const dt = Math.min(0.05, (now - (this.last || now)) / 1000);
     this.last = now;
     this.time += dt;
