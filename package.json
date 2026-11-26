@@ -1,0 +1,27 @@
+{
+  "name": "la-ventana-kite",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A kiteboarding game set in La Ventana, Baja California Sur",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test tests/",
+    "fetch-data": "node tools/fetch-dem.mjs && node tools/fetch-osm.mjs",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.4",
+    "@types/three": "^0.187.0",
+    "playwright": "^1.65.1",
+    "pngjs": "^7.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
