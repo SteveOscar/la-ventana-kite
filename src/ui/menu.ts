@@ -87,6 +87,12 @@ export class Menus {
 
   hide() {
     this.screen.classList.add('hidden');
+    // A focused (now invisible) button would otherwise be "clicked" again by the Space bar.
+    (document.activeElement as HTMLElement | null)?.blur();
+    const node = this.screen.firstElementChild;
+    setTimeout(() => {
+      if (this.screen.classList.contains('hidden') && this.screen.firstElementChild === node) this.screen.innerHTML = '';
+    }, 600);
   }
 
   private rotateFact() {

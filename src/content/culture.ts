@@ -34,6 +34,10 @@ export const pick = <T>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr
 
 export const FUN_FACTS: { es: string; en: string }[] = [
   {
+    es: 'La ventana = the window',
+    en: '"La ventana" means "the window": fitting for a village where every kiter is talking about the wind window.',
+  },
+  {
     es: 'El Norte sopla de noviembre a marzo.',
     en: 'El Norte is the winter north wind that funnels down the Sea of Cortez from roughly November to March. The channel between Isla Cerralvo and the mainland squeezes it, and the afternoon thermal adds a few knots.',
   },
@@ -146,7 +150,7 @@ export const TUTORIAL: { id: string; title: string; lines: Line[]; hint: string 
     id: 'window',
     title: 'La ventana de viento · The wind window',
     lines: [
-      { who: 'memo', es: '¡Bienvenido a La Ventana! Ya llegó el Norte.', en: 'Welcome to La Ventana! The Norte is here.' },
+      { who: 'memo', es: '¡Bienvenido a La Ventana! Ya llegó el Norte.', en: 'Welcome to La Ventana! The Norte is here. "La ventana" means "the window", and today you learn the wind window.' },
       {
         who: 'memo',
         es: 'Tu cometa vuela en una ventana frente a ti, a favor del viento.',

@@ -98,6 +98,13 @@ export class KiteModel {
       roughness: 0.55,
       metalness: 0,
     });
+    // Ripstop glows with the sun behind it; without this, kites seen from below read as silhouettes.
+    canopyMat.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <emissivemap_fragment>',
+        '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vColor.rgb * 0.32;',
+      );
+    };
     this.canopy = new THREE.Mesh(this.canopyGeo, canopyMat);
     this.canopy.castShadow = true;
     this.group.add(this.canopy);
