@@ -501,7 +501,8 @@ export class Game {
       this.cam.update(this.photo ? realDt : dt, this.player.rig, { height: (x, z) => w.groundOrWater(x, z) });
     }
     const focus = this.state === 'title' ? this.cam.camera.position : this.player.rig.pos;
-    w.updateVisuals(dt, this.time, this.cam.camera, focus);
+    // Paused or on the summary screen, the world holds still.
+    w.updateVisuals(this.state === 'playing' || this.state === 'title' ? dt : 0, this.time, this.cam.camera, focus);
     this.playerShadow.group.visible = this.state !== 'title';
     if (this.state !== 'title') {
       const span = this.player.kite.span;

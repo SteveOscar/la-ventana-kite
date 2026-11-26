@@ -76,6 +76,7 @@ export class World {
 
   /** Lighting, sky and water uniforms for the current clock and camera. */
   updateVisuals(dt: number, time: number, camera: THREE.Camera, focus: THREE.Vector3) {
+    this.wildlife.wind.set(this.wind.downwindX * this.wind.base, this.wind.downwindZ * this.wind.base);
     this.vegetation.update(camera);
     this.village.update(dt, time, camera, this.wind.downwindX * this.wind.base, this.wind.downwindZ * this.wind.base);
     this.wildlife.update(dt, time, focus, camera);
