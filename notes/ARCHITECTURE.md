@@ -1,6 +1,6 @@
 # La Ventana Kite — architecture notes
 
-Personal side project (not Govly). Vite + three.js r187 + TypeScript (erasable syntax only; imports use `.ts` extensions).
+Personal side project. Vite + three.js r187 + TypeScript (erasable syntax only; imports use `.ts` extensions).
 
 ## Run / check
 - Dev server: `npx vite --host 127.0.0.1 --port 5188` (usually already running; check `curl -s 127.0.0.1:5188`).

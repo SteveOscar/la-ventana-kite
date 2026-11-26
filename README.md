@@ -1,5 +1,7 @@
 # La Ventana · Kite Session
 
+**▶ Play it: https://steveoscar.github.io/la-ventana-kite/** (desktop Chrome, Safari or Firefox with a keyboard; a gamepad works too)
+
 A kiteboarding game set in La Ventana and El Sargento, Baja California Sur, on the Sea of Cortez. You ride the winter *Norte* on a bay built from real elevation and OpenStreetMap data, with Isla Cerralvo across the channel.
 
 ![La Ventana beach](screenshots/la-ventana-beach.png)
@@ -12,7 +14,7 @@ npm run play       # builds and serves http://127.0.0.1:4188
 npm run dev        # dev server with hot reload, http://127.0.0.1:5188
 ```
 
-`npm run build` writes a static site to `dist/` (it works from any folder or GitHub Pages).
+`npm run build` writes a static site to `dist/`. Every push to `main` redeploys GitHub Pages (`.github/workflows/deploy.yml`).
 
 ## Modes
 
