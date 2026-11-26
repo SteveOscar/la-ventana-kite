@@ -3,6 +3,7 @@ import type { Game, ModeId, SessionConfig, Mode } from '../game/game.ts';
 import type { Logbook } from '../game/logbook.ts';
 import { WIND_PRESETS } from '../world/wind.ts';
 import { formatClock } from '../core/math.ts';
+import { KITE_PALETTES } from '../render/kiteModel.ts';
 
 export interface ModeInfo {
   id: ModeId;
@@ -170,6 +171,13 @@ export class Menus {
           ${advice}
           ${mode.fixed?.startHours ? '' : `<div data-g="time">${chips('Hora · Time', TIMES.map((t) => ({ v: t.hours, label: t.label, sub: t.sub })), cfg.startHours)}</div>`}
           ${mode.fixed?.month !== undefined ? '' : `<div data-g="month">${chips('Mes · Month', MONTHS.map((m, i) => ({ v: i, label: m })), cfg.month)}</div>`}
+          <div class="opt"><div class="label">Colores · Kite colours</div><div class="chips" data-g="palette">${KITE_PALETTES.map(
+            (p, i) =>
+              `<button class="chip swatch ${cfg.palette === i ? 'on' : ''}" data-i="${i}" title="Kite ${i + 1}">${p.canopy
+                .slice(0, 3)
+                .map((c) => `<span style="background:#${c.toString(16).padStart(6, '0')}"></span>`)
+                .join('')}</button>`,
+          ).join('')}</div></div>
           <div data-g="assist">${chips(
             'Control',
             [
@@ -181,7 +189,7 @@ export class Menus {
           <div class="row-btns"><button class="btn" data-act="back">← Volver</button><button class="btn primary" data-act="go">¡Vámonos!</button></div>
         </div>`);
       const bind = (g: string, values: unknown[], set: (v: never) => void) => {
-        node.querySelectorAll<HTMLButtonElement>(`[data-g="${g}"] .chip`).forEach((b) =>
+        node.querySelectorAll<HTMLButtonElement>(`[data-g="${g}"] .chip, .chips[data-g="${g}"] > .chip`).forEach((b) =>
           b.addEventListener('click', () => {
             this.click();
             set(values[Number(b.dataset.i)] as never);
@@ -194,6 +202,7 @@ export class Menus {
         cfg.kiteSize = recommendedKite(WIND_PRESETS[cfg.wind].knots);
       });
       bind('kite', SIZES, (v) => (cfg.kiteSize = v));
+      bind('palette', KITE_PALETTES.map((_, i) => i), (v) => (cfg.palette = v));
       bind('time', TIMES.map((t) => t.hours), (v) => (cfg.startHours = v));
       bind('month', MONTHS.map((_, i) => i), (v) => (cfg.month = v));
       bind('assist', [true, false], (v) => {

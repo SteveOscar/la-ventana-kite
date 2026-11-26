@@ -30,6 +30,8 @@ export interface SessionConfig {
   month: number;
   startHours: number;
   assisted: boolean;
+  /** Index into KITE_PALETTES for the player's kite. */
+  palette: number;
 }
 
 export const DEFAULT_CONFIG: SessionConfig = {
@@ -39,6 +41,7 @@ export const DEFAULT_CONFIG: SessionConfig = {
   month: 2,
   startHours: 13.5,
   assisted: true,
+  palette: 0,
 };
 
 /** Hooks a game mode can implement. */
@@ -73,6 +76,7 @@ export class Game {
   readonly audio = new AudioEngine();
   readonly root: HTMLElement;
   readonly ai: AiRiders;
+  private playerPalette = 0;
   readonly logbook = new Logbook();
   /** Per-session statistics for the summary. */
   stats = { distance: 0, topSpeed: 0, sightings: [] as string[], landmarks: [] as string[], newTricks: [] as string[] };
@@ -208,7 +212,10 @@ export class Game {
     this.world.hours = config.startHours;
     this.world.dayOfYear = MONTH_DAY[config.month] ?? 15;
     this.world.setWind(WIND_PRESETS[config.wind]);
-    if (this.player.rig.kite.size !== config.kiteSize) this.player.setKiteSize(config.kiteSize, KITE_PALETTES[0]);
+    if (this.player.rig.kite.size !== config.kiteSize || this.playerPalette !== config.palette) {
+      this.player.setKiteSize(config.kiteSize, KITE_PALETTES[config.palette] ?? KITE_PALETTES[0]);
+      this.playerPalette = config.palette;
+    }
     this.player.manual = !config.assisted;
     this.player.pilot.reset();
     this.hud.setHelp(config.assisted);
