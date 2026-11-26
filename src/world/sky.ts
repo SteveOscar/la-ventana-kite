@@ -112,6 +112,10 @@ void main() {
   vec3 d = normalize(vDir);
   float up = max(d.y, 0.0);
   vec3 col = mix(uHorizon, uZenith, pow(up, 0.42));
+  // At dusk, blend from the glowing horizon to the blue through pale gold, not purple.
+  vec3 pale = vec3(1.0, 0.78, 0.55);
+  vec3 dusk = mix(mix(uHorizon, pale, smoothstep(0.0, 0.1, up)), uZenith, smoothstep(0.05, 0.45, up));
+  col = mix(col, dusk, uGolden * 0.6);
   // Warm band low in the sky toward the sun at golden hour.
   float toward = max(dot(normalize(vec3(d.x, 0.0, d.z)), normalize(vec3(uSunDir.x, 0.0, uSunDir.z))), 0.0);
   col = mix(col, vec3(1.0, 0.62, 0.38), uGolden * pow(1.0 - up, 6.0) * (0.35 + 0.65 * toward) * 0.65);
