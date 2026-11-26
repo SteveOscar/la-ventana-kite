@@ -29,6 +29,7 @@ export interface HudFrame {
   pilotTarget?: { az: number; el: number } | null;
   /** Jump timing cue while the edge is loaded. */
   jumpCue?: 'load' | 'pop' | null;
+  waypoint?: { x: number; z: number; label: string } | null;
   /** Other kiters for the minimap. */
   others: { x: number; z: number }[];
   markers: { x: number; z: number; color: string; label?: string }[];
@@ -48,6 +49,7 @@ export class Hud {
   private comboVal: HTMLElement;
   private objective: HTMLElement;
   private trick: HTMLElement;
+  private waypoint: HTMLElement;
   private trickTimer = 0;
   private toast: HTMLElement;
   private toastTimer = 0;
@@ -107,6 +109,7 @@ export class Hud {
     this.mapBase = document.createElement('canvas');
     this.buildMapBase();
 
+    this.waypoint = el('div', 'waypoint', this.root, '<div class="wp-arrow">▲</div><div class="wp-label"></div>');
     this.trick = el('div', 'trick', this.root);
     this.toast = el('div', 'toast', this.root);
     this.dialog = el('div', 'dialog', this.root);
@@ -282,6 +285,13 @@ export class Hud {
     const rel = f.windFrom + Math.PI - f.cameraYaw;
     this.windArrow.style.transform = `rotate(${(rel / DEG).toFixed(1)}deg)`;
 
+    if (f.waypoint) {
+      const dx = f.waypoint.x - rig.pos.x, dz = f.waypoint.z - rig.pos.z;
+      const rel = headingOf(dx, dz) - f.cameraYaw;
+      this.waypoint.style.display = 'block';
+      (this.waypoint.firstElementChild as HTMLElement).style.transform = `rotate(${(rel / DEG).toFixed(1)}deg)`;
+      (this.waypoint.lastElementChild as HTMLElement).textContent = `${f.waypoint.label} · ${Math.hypot(dx, dz).toFixed(0)} m`;
+    } else this.waypoint.style.display = 'none';
     this.relaunchBar.style.display = rig.kite.mode === 'down' ? 'block' : 'none';
     this.relaunchFill.style.width = `${(rig.kite.relaunch * 100).toFixed(0)}%`;
 

@@ -107,6 +107,10 @@ export class KiteSchool implements Mode {
     game.player.autoStart = true;
   }
 
+  waypoint() {
+    return this.buoy ? { x: this.buoy.x, z: this.buoy.z, label: 'Boya' } : null;
+  }
+
   markers() {
     return this.buoy ? [{ x: this.buoy.x, z: this.buoy.z, color: '#ff7a1a', label: 'Boya' }] : [];
   }

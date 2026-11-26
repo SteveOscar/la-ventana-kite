@@ -248,6 +248,26 @@ kbd {
   color: var(--teal);
 }
 
+.waypoint {
+  position: absolute;
+  top: 152px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  display: none;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.wp-arrow {
+  font-size: 30px;
+  color: #ffd166;
+  line-height: 1;
+  transition: transform 0.12s linear;
+}
+.wp-label {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 2px;
+}
 .toast {
   position: absolute;
   bottom: 150px;

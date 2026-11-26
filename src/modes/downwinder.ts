@@ -130,6 +130,11 @@ export class Downwinder implements Mode {
     game.hud.setObjective(`<h3>Downwinder · ${formatTime(this.time)}</h3>${rows}${this.started ? '' : '<br>Get up and ride south (downwind).'}`);
   }
 
+  waypoint() {
+    const g = this.gates[this.next];
+    return g ? { x: g.buoy.x, z: g.buoy.z, label: g.name } : null;
+  }
+
   markers() {
     return this.gates
       .map((g, i) => ({ x: g.buoy.x, z: g.buoy.z, color: i === this.next ? '#ffd166' : g.passed ? 'rgba(255,255,255,0.4)' : '#ff7a1a', label: i === this.next ? String(i + 1) : undefined }))

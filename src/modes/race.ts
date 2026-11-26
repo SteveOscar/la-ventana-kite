@@ -204,6 +204,14 @@ export class Race implements Mode {
     }, 5000);
   }
 
+  waypoint() {
+    const you = this.racers[0];
+    if (you.finishTime !== null) return null;
+    const i = this.course[Math.min(you.leg, this.course.length - 1)];
+    const m = this.marks[i];
+    return { x: m.x, z: m.z, label: i === 2 ? 'Meta ★' : `Boya ${['A', 'B'][i]}` };
+  }
+
   markers() {
     const you = this.racers[0];
     return this.marks.map((m, i) => ({

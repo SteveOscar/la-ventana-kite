@@ -50,6 +50,8 @@ export interface Mode {
   onCrash?(game: Game, reason: string): void;
   /** Extra minimap markers. */
   markers?(game: Game): { x: number; z: number; color: string; label?: string }[];
+  /** Where to go next (drawn as an arrow on the HUD). */
+  waypoint?(game: Game): { x: number; z: number; label: string } | null;
   dispose?(game: Game): void;
 }
 
@@ -486,6 +488,7 @@ export class Game {
             : null,
         others: this.others,
         markers: this.mode?.markers?.(this) ?? [],
+        waypoint: this.mode?.waypoint?.(this) ?? null,
       });
     }
     this.renderer.render(w.scene, this.cam.camera);
