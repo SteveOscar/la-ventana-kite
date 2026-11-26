@@ -1,6 +1,6 @@
 # La Ventana · Kite Session
 
-**▶ Play it: https://steveoscar.github.io/la-ventana-kite/** (desktop Chrome, Safari or Firefox with a keyboard; a gamepad works too)
+**▶ Play it: https://steveoscar.github.io/la-ventana-kite/** (desktop browser with a keyboard, tested in Chrome; a gamepad works too)
 
 A kiteboarding game set in La Ventana and El Sargento, Baja California Sur, on the Sea of Cortez. You ride the winter *Norte* on a bay built from real elevation and OpenStreetMap data, with Isla Cerralvo across the channel.
 
