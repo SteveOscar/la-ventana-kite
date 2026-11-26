@@ -433,6 +433,19 @@ kbd {
   opacity: 0.72;
   margin-top: 2px;
 }
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #ffd166;
+  color: #2b1d00;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: 2px;
+  text-transform: uppercase;
+}
 .menu button:hover,
 .btn:hover,
 .menu button.focus {
