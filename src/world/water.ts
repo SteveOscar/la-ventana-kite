@@ -145,8 +145,8 @@ void main() {
   vec3 mid = srgb(vec3(0.03, 0.37, 0.52));
   vec3 shallow = srgb(vec3(0.16, 0.76, 0.73));
   vec3 sand = srgb(vec3(0.92, 0.86, 0.70));
-  vec3 body = mix(mid, shallow, exp(-depth / 3.2));
-  body = mix(deep, body, exp(-depth / 26.0));
+  vec3 body = mix(mid, shallow, exp(-depth / 5.2));
+  body = mix(deep, body, exp(-depth / 32.0));
   body = mix(body, sand, exp(-depth / 0.7) * 0.65);
   body *= 1.0 - 0.13 * max(g, 0.0);
   float sunUp = max(uSunDir.y, 0.0);
