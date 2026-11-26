@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit -p .",
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.ts",
     "fetch-data": "node tools/fetch-dem.mjs && node tools/fetch-osm.mjs",
     "smoke": "node tools/smoke.mjs"
   },

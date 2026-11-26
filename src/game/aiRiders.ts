@@ -111,7 +111,7 @@ export class AiRiders {
         a.k.simulate(dt, input, intent, w.env, dist < 1500 ? 8 : 3);
       }
       if (visible) a.k.updateVisuals(dt);
-      if (dist < 600) a.fx.update(dt, rig, w.env, dist < 120 ? spray : DUMMY_SPRAY);
+      if (dist < 600) a.fx.update(dt, rig, w.env, dist < 120 ? spray : null);
       others.push({ x: rig.pos.x, z: rig.pos.z });
     }
     game.others = others;
@@ -182,5 +182,3 @@ export class AiRiders {
     return { input, intent };
   }
 }
-
-const DUMMY_SPRAY = { emit() {}, burst() {}, update() {} } as unknown as Spray;

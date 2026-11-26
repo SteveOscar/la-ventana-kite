@@ -57,6 +57,7 @@ export class Hud {
   private gauge: HTMLCanvasElement;
   private map: HTMLCanvasElement;
   private mapBase: HTMLCanvasElement;
+  private mapBounds = [0, 1, 0, 1];
   private help: HTMLElement;
   private stateBadge: HTMLElement;
   private relaunchBar: HTMLElement;
@@ -248,7 +249,7 @@ export class Hud {
     label('Aguas termales', lm.hotSprings.x - 2400, lm.hotSprings.z);
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     label('Canal de Cerralvo', 3000, -6000);
-    (this.mapBase as unknown as { bounds: number[] }).bounds = [X0, X1, Z0, Z1];
+    this.mapBounds = [X0, X1, Z0, Z1];
   }
 
   update(dt: number, f: HudFrame) {
@@ -270,7 +271,12 @@ export class Hud {
       this.powerLabel.textContent = `tirón ${kg.toFixed(0)} kg · cometa ${rig.kite.size} m²`;
       this.scoreVal.textContent = Math.round(f.score).toLocaleString();
       this.comboVal.textContent = f.combo > 1.01 ? `combo ×${f.combo.toFixed(1)}` : '';
-      this.stateBadge.textContent = rig.kite.mode === 'down' ? '¡Cometa al agua! Hold R to relaunch' : f.assisted ? 'Asistido · autopilot on' : 'Pro · manual bar';
+      this.stateBadge.textContent =
+        rig.kite.mode === 'down'
+          ? '¡Cometa al agua! Hold R to relaunch'
+          : f.assisted
+            ? 'Asistido · autopilot on'
+            : `Pro · barra ${Math.round(rig.kite.sheet * 100)}% · ${rig.kite.steer < -0.1 ? '◀' : rig.kite.steer > 0.1 ? '▶' : '•'}`;
     }
     // Wind arrow relative to the camera: up on screen = camera forward.
     const rel = f.windFrom + Math.PI - f.cameraYaw;
@@ -391,7 +397,7 @@ export class Hud {
   private drawMap(f: HudFrame) {
     const ctx = this.map.getContext('2d')!;
     const W = this.map.width, H = this.map.height;
-    const [X0, X1, Z0, Z1] = (this.mapBase as unknown as { bounds: number[] }).bounds;
+    const [X0, X1, Z0, Z1] = this.mapBounds;
     const rig = f.rig;
     const span = this.bigMap ? 9000 : 3200;
     const s = W / span;

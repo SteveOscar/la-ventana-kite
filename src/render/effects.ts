@@ -215,9 +215,10 @@ export class RiderEffects {
   readonly wake = new Wake();
   private emitAcc = 0;
 
-  update(dt: number, rig: Rig, env: RigEnv, spray: Spray) {
+  /** Pass `spray` = null to keep the wake but skip spray (riders far from the camera). */
+  update(dt: number, rig: Rig, env: RigEnv, spray: Spray | null) {
     this.wake.update(dt, rig, env);
-    if (rig.mode !== 'riding' || !rig.hasBoard) return;
+    if (!spray || rig.mode !== 'riding' || !rig.hasBoard) return;
     const v = rig.speed;
     const rate = clamp((v - 4) * 9 + rig.edge * 40, 0, 140);
     this.emitAcc += rate * dt;
