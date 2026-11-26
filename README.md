@@ -6,7 +6,8 @@ A kiteboarding game set in La Ventana and El Sargento, Baja California Sur, on t
 
 ```sh
 npm install
-npm run dev        # http://127.0.0.1:5188
+npm run play       # builds and serves http://127.0.0.1:4188
+npm run dev        # dev server with hot reload, http://127.0.0.1:5188
 ```
 
 `npm run build` writes a static site to `dist/` (it works from any folder or GitHub Pages).
