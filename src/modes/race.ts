@@ -5,7 +5,8 @@ import { Kiter } from '../game/kiter.ts';
 import { RIDER_LOOKS } from '../render/riderModel.ts';
 import { KITE_PALETTES } from '../render/kiteModel.ts';
 import { RiderEffects } from '../render/effects.ts';
-import { DEG, clamp, headingOf, wrapAngle } from '../core/math.ts';
+import { assistCarve } from '../sim/autopilot.ts';
+import { DEG, carveToward, clamp, headingOf, wrapAngle } from '../core/math.ts';
 import { NO_INPUT, type Rig } from '../sim/rig.ts';
 import { formatTime, recommendedKite } from '../ui/menu.ts';
 
@@ -17,6 +18,7 @@ interface Racer {
   tack: 1 | -1;
   finishTime: number | null;
   skill: number;
+  turn: { dir: number };
 }
 
 const NAMES = ['Jesús "Chuy Jr."', 'Valeria', 'Ana (Vancouver)', 'Mateo', 'Big Dave (Hood River)'];
@@ -38,7 +40,7 @@ export class Race implements Mode {
     const z0 = -420;
     const c0 = d.coastX(z0) ?? 100;
     this.startLine = { x: c0 + 330, z: z0 };
-    const upZ = z0 - 650, downZ = z0 + 380;
+    const upZ = z0 - 430, downZ = z0 + 300;
     const up = new Buoy((d.coastX(upZ) ?? c0) + 420, upZ, 0xffd166, 'A');
     const down = new Buoy((d.coastX(downZ) ?? c0) + 380, downZ, 0xff7a1a, 'B');
     const line = new Buoy(this.startLine.x, this.startLine.z, 0x2ec4b6, '★');
@@ -48,14 +50,14 @@ export class Race implements Mode {
     game.spawnPlayer(this.startLine.x - 25, this.startLine.z + 15, -1);
     game.player.autoStart = false;
     const size = recommendedKite(game.world.wind.settings.knots);
-    this.racers = [{ name: 'Tú · You', kiter: null, fx: null, leg: 0, tack: 1, finishTime: null, skill: 1 }];
+    this.racers = [{ name: 'Tú · You', kiter: null, fx: null, leg: 0, tack: 1, finishTime: null, skill: 1, turn: { dir: 0 } }];
     NAMES.forEach((name, i) => {
       const k = new Kiter(size, RIDER_LOOKS[(i + 2) % RIDER_LOOKS.length], KITE_PALETTES[(i + 3) % KITE_PALETTES.length], 0x333333);
       const fx = new RiderEffects();
       game.world.scene.add(k.group, fx.wake.mesh);
       const x = this.startLine.x - 60 + i * 28, z = this.startLine.z + 20 + (i % 2) * 18;
       k.rig.spawn(x, z, headingOf(-game.world.wind.downwindZ, game.world.wind.downwindX), game.world.env);
-      this.racers.push({ name, kiter: k, fx, leg: 0, tack: 1, finishTime: null, skill: 0.55 + i * 0.09 });
+      this.racers.push({ name, kiter: k, fx, leg: 0, tack: 1, finishTime: null, skill: 0.55 + i * 0.09, turn: { dir: 0 } });
     });
     game.hud.say(RACE_INTRO);
   }
@@ -121,9 +123,11 @@ export class Race implements Mode {
         } else if (Math.sign(fromWind) !== r.tack) r.tack = Math.sign(fromWind) as 1 | -1;
         desired = down + Math.PI + r.tack * limit;
       } else desired = toMark;
-      const err = wrapAngle(desired - rig.heading);
-      carve = clamp(err * 1.7, -1, 1);
+      // Nobody waterstarts pointing upwind: get going on a beam reach first.
+      if (rig.mode !== 'riding' || (rig.speed < 6 && rig.modeTime < 8)) desired = down + Math.PI + r.tack * 95 * DEG;
+      carve = rig.mode === 'riding' ? carveToward(rig.heading, desired, down, r.turn, 1.7) : clamp(wrapAngle(desired - rig.heading) * 1.7, -1, 1);
       bearAway = carve * rig.kiteSide > 0.3;
+      carve = assistCarve(rig, carve);
     }
     const intent = {
       power: rig.speed < 6 ? 1 : 0,

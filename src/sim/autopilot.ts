@@ -43,6 +43,8 @@ export class KitePilot {
   private prevH = new Vector3();
   /** Seconds since the rider's side of travel last changed (power stroke after a transition). */
   private sinceSideChange = 99;
+  /** Dumping power to avoid being lofted. */
+  private dumping = false;
 
   reset() {
     this.phase = 'park';
@@ -112,7 +114,7 @@ export class KitePilot {
           targetSide = kiteSide;
           elevation = 80 * DEG;
           inset = -4 * DEG;
-        } else if (intent.go && ready && elev > 45 * DEG) {
+        } else if (intent.go && ready && (elev > 45 * DEG || (elev > 26 * DEG && kiteSide === side))) {
           this.phase = 'dive';
         } else if (this.phase !== 'dive') {
           this.phase = 'park';
@@ -157,7 +159,7 @@ export class KitePilot {
           if (!intent.bearAway || wrongSide || elev >= 66 * DEG) this.transitioning = false;
         }
         this.phase = 'ride';
-        if ((this.sinceSideChange < 1.6 && kiteSide === side) || (rig.sinceJump < 1.1 && rig.speed < 7)) {
+        if (((this.sinceSideChange < 1.6 && kiteSide === side) || rig.sinceJump < 1.1) && rig.speed < 6) {
           // Power stroke on the new tack after a transition or a landing.
           elevation = 30 * DEG;
           inset = 14 * DEG;
@@ -173,6 +175,12 @@ export class KitePilot {
           sheet = Math.min(sheet, 0.84 - 0.5 * clamp((tension / weight - 1.25) / 0.8, 0, 1));
           elevation = Math.min(elevation, 34 * DEG);
         }
+        // About to be lofted: bar out and keep the kite low, the way a rider reacts to a big gust.
+        if (tension * kite.u.y > 0.78 * weight) {
+          sheet = 0.28;
+          elevation = Math.min(elevation, 28 * DEG);
+          this.dumping = true;
+        } else this.dumping = false;
         if (rig.speed < 5.2 && intent.power >= 0 && tension < 1.0 * weight) {
           // Underpowered: work the kite in a sine to generate apparent wind.
           this.sineT += dt;
@@ -220,7 +228,7 @@ export class KitePilot {
     }
 
     windowPoint(kite.center, elevation, targetSide, inset, this.target);
-    this.sheet = damp(this.sheet, sheet, 4, dt);
+    this.sheet = damp(this.sheet, sheet, this.dumping ? 14 : 4, dt);
     // Gentle hands over the top; full lock only when diving or sending.
     const maxSteer = this.phase === 'transition' ? 0.85 : this.phase === 'park' ? 0.6 : this.phase === 'ride' ? 0.85 : 1;
     rig.coasting = this.phase === 'transition' || (this.phase === 'ride' && this.sinceSideChange < 1.6);
@@ -261,4 +269,17 @@ export class KitePilot {
     }
     return clamp(err * 1.9, -1, 1) * clamp(dist / 0.06, 0.35, 1);
   }
+}
+
+/**
+ * Assisted carving: while bearing away into a transition, wait for the kite to reach 12
+ * before turning through downwind; after landing pointed downwind, head back up.
+ */
+export function assistCarve(rig: Rig, carve: number) {
+  if (rig.mode !== 'riding') return carve;
+  const side = rig.kiteSide;
+  const downwindness = rig.dirX * rig.windX + rig.dirZ * rig.windZ;
+  if (carve * side > 0.3 && downwindness > 0.1 && rig.kite.elevation < 64 * DEG) return carve * 0.22;
+  if (carve === 0 && downwindness > 0.8 && rig.sinceLanding < 4) return -side * 0.6;
+  return carve;
 }

@@ -10,7 +10,7 @@ import { Hud } from '../ui/hud.ts';
 import { RIDER_LOOKS } from '../render/riderModel.ts';
 import { KITE_PALETTES } from '../render/kiteModel.ts';
 import { NO_INPUT, type RigInput, type JumpResult } from '../sim/rig.ts';
-import type { PilotIntent } from '../sim/autopilot.ts';
+import { assistCarve, type PilotIntent } from '../sim/autopilot.ts';
 import { Scoring } from './scoring.ts';
 import { MONTHS, MONTH_DAY } from '../content/culture.ts';
 import { Spray, RiderEffects } from '../render/effects.ts';
@@ -356,15 +356,8 @@ export class Game {
       this.player.manualSheet = clamp(this.player.manualSheet + ((sheetIn ? 1 : 0) - (sheetOut ? 1 : 0)) * 0.016, 0.1, 1);
     }
 
-    const side = rig.kiteSide;
-    const bearAway = carve * side > 0.3;
-    if (assisted && rig.mode === 'riding') {
-      const downwindness = rig.dirX * rig.windX + rig.dirZ * rig.windZ;
-      // Wait for the kite to reach 12 before carving through the downwind part of a transition.
-      if (bearAway && downwindness > 0.1 && rig.kite.elevation < 64 * DEG) carve *= 0.22;
-      // After landing pointed downwind, head back up onto a reach.
-      if (carve === 0 && downwindness > 0.8 && rig.sinceLanding < 4) carve = -side * 0.6;
-    }
+    const bearAway = carve * rig.kiteSide > 0.3;
+    if (assisted) carve = assistCarve(rig, carve);
 
     let grab = 0;
     if (air && grabHeld) grab = power > 0.3 ? 4 : power < -0.3 ? 3 : carve !== 0 ? 2 : 1;

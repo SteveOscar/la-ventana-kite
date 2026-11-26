@@ -73,3 +73,20 @@ export function formatClock(hours: number) {
   const m = Math.floor((hours - h) * 60);
   return `${h}:${m.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Carve command toward a desired heading that turns through downwind rather than through
+ * the wind for big turns (kiters can't tack through the no-go zone). `state.dir` holds the
+ * committed turn direction between calls.
+ */
+export function carveToward(heading: number, desired: number, downwind: number, state: { dir: number }, gain = 1.6) {
+  const err = wrapAngle(desired - heading);
+  if (Math.abs(err) < 0.5) state.dir = 0;
+  if (Math.abs(err) > 1.2 && state.dir === 0) {
+    const a = wrapAngle(downwind - heading);
+    const viaShort = Math.sign(a) === Math.sign(err) && Math.abs(a) < Math.abs(err);
+    state.dir = viaShort ? Math.sign(err) : -Math.sign(err);
+  }
+  if (state.dir !== 0) return state.dir;
+  return clamp(err * gain, -1, 1);
+}

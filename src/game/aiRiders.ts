@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { DEG, clamp, mulberry32, wrapAngle } from '../core/math.ts';
+import { DEG, carveToward, clamp, mulberry32, wrapAngle } from '../core/math.ts';
 import { Kiter } from './kiter.ts';
 import { RIDER_LOOKS } from '../render/riderModel.ts';
 import { KITE_PALETTES } from '../render/kiteModel.ts';
 import { RiderEffects, type Spray } from '../render/effects.ts';
 import { NO_INPUT, type RigInput } from '../sim/rig.ts';
-import type { PilotIntent } from '../sim/autopilot.ts';
+import { assistCarve, type PilotIntent } from '../sim/autopilot.ts';
 import type { Game } from './game.ts';
 
 interface Brain {
@@ -23,6 +23,7 @@ interface Brain {
   holding: number;
   trick: { spin: number; flip: number; grab: number };
   skill: number;
+  turn: { dir: number };
 }
 
 export interface AiKiter {
@@ -61,6 +62,7 @@ export class AiRiders {
         holding: 0,
         trick: { spin: 0, flip: 0, grab: 0 },
         skill: r(),
+        turn: { dir: 0 },
       };
       this.riders.push({ k, brain, fx, active: true });
     }
@@ -132,13 +134,15 @@ export class AiRiders {
     const down = w.downwindHeading;
     // Tack +1 travels to the left of downwind (east here), -1 to the right.
     const beam = down - b.tack * (Math.PI / 2);
-    const desired = beam - b.tack * point;
+    // Point upwind once planing; waterstart on a beam reach.
+    const planing = rig.mode === 'riding' && (rig.speed > 6 || rig.modeTime > 8);
+    const desired = planing ? beam - b.tack * point : beam + b.tack * 0.1;
     let carve = 0;
     let bearAway = false;
     if (rig.mode === 'riding' || rig.mode === 'water') {
-      const err = wrapAngle(desired - rig.heading);
-      carve = clamp(err * 1.6, -1, 1);
+      carve = rig.mode === 'riding' ? carveToward(rig.heading, desired, down, b.turn) : clamp(wrapAngle(desired - rig.heading) * 1.6, -1, 1);
       bearAway = carve * rig.kiteSide > 0.3;
+      carve = assistCarve(rig, carve);
     }
     // Avoid the player.
     const p = game.player.rig.pos;

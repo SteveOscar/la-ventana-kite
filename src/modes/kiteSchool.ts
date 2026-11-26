@@ -56,8 +56,8 @@ export class KiteSchool implements Mode {
     switch (id) {
       case 'window':
         // Lesson 1 is about seeing the window: dive the kite and feel the power zone.
-        if (rig.kite.depth > 0.3 || rig.kite.tension > rig.mass * 9.81 * 0.9) this.sawPower = true;
-        if (this.sawPower && this.stepTime > 3) this.next(game);
+        if (rig.kite.depth > 0.12 || rig.kite.tension > rig.mass * 9.81 * 0.55 || rig.mode === 'riding') this.sawPower = true;
+        if (this.sawPower && this.stepTime > 2.5) this.next(game);
         break;
       case 'waterstart':
         if (rig.mode === 'riding' && rig.modeTime > 1.5) this.next(game);
