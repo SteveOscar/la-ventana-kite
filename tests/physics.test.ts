@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Rig, NO_INPUT, type RigEnv, type RigInput, type JumpResult } from '../src/sim/rig.ts';
-import { KitePilot, type PilotIntent } from '../src/sim/autopilot.ts';
+import { KitePilot, assistCarve, type PilotIntent } from '../src/sim/autopilot.ts';
 import { Wind } from '../src/world/wind.ts';
 import { Waves } from '../src/world/waves.ts';
 import { DEG, KNOT } from '../src/core/math.ts';
@@ -145,4 +145,28 @@ test('a race AI beats up to a mark 430 m upwind and rounds it without getting lo
   }
   assert.ok(rounded, `reached the mark (${t.toFixed(0)} s)`);
   assert.ok(lofts <= 1, `lofted ${lofts} times`);
+});
+
+test('an assisted carved transition keeps planing and ends up on the other tack', () => {
+  const { rig, pilot, env, run } = setup(19, 9);
+  void pilot;
+  void env;
+  run(12);
+  const startSide = rig.kiteSide;
+  let sank = false;
+  rig.events.sink = () => (sank = true);
+  let minSpeed = Infinity;
+  // Hold the carve until riding a reach on the new tack, as a player would.
+  for (let i = 0; i < 80; i++) {
+    const carve = assistCarve(rig, startSide);
+    run(0.1, { carve }, { bearAway: true });
+    minSpeed = Math.min(minSpeed, rig.speed);
+    const downwindness = rig.dirX * rig.windX + rig.dirZ * rig.windZ;
+    if (rig.kiteSide !== startSide && downwindness < 0.35 && i > 10) break;
+  }
+  run(4);
+  assert.ok(!sank, 'did not sink');
+  assert.ok(minSpeed / KNOT > 8, `kept planing (min ${(minSpeed / KNOT).toFixed(1)} kn)`);
+  assert.notEqual(rig.kiteSide, startSide, 'kite on the new side');
+  assert.equal(rig.mode, 'riding');
 });
