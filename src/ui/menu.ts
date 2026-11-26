@@ -117,7 +117,7 @@ export class Menus {
         </div>
         <div class="menu">
           ${this.modes
-            .map((m) => `<button data-mode="${m.id}">${m.es} · ${m.title}<small>${m.blurb}</small></button>`)
+            .map((m) => `<button data-mode="${m.id}">${m.es === m.title ? m.es : `${m.es} · ${m.title}`}<small>${m.blurb}</small></button>`)
             .join('')}
           <button data-act="logbook">Bitácora · Logbook<small>Wildlife, landmarks and tricks you've collected</small></button>
           <button data-act="settings">Opciones · Settings</button>
