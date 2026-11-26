@@ -5,8 +5,8 @@ import { Kiter } from '../game/kiter.ts';
 import { RIDER_LOOKS } from '../render/riderModel.ts';
 import { KITE_PALETTES } from '../render/kiteModel.ts';
 import { RiderEffects } from '../render/effects.ts';
-import { assistCarve } from '../sim/autopilot.ts';
-import { DEG, carveToward, clamp, headingOf, wrapAngle } from '../core/math.ts';
+import { steerToMark } from '../sim/tactics.ts';
+import { headingOf } from '../core/math.ts';
 import { NO_INPUT, type Rig } from '../sim/rig.ts';
 import { formatTime, recommendedKite } from '../ui/menu.ts';
 
@@ -118,22 +118,7 @@ export class Race implements Mode {
     let bearAway = false;
     if (this.countdown <= 0 && r.finishTime === null) {
       const mark = this.marks[this.course[Math.min(r.leg, this.course.length - 1)]];
-      const toMark = headingOf(mark.x - rig.pos.x, mark.z - rig.pos.z);
-      const fromWind = wrapAngle(toMark - (down + Math.PI));
-      const limit = (44 + (1 - r.skill) * 12) * DEG;
-      let desired: number;
-      if (Math.abs(fromWind) < limit) {
-        // Beating: hold a close-hauled course on the current tack; tack on the layline.
-        if (Math.abs(fromWind) < limit * 0.35) {
-          // keep tack
-        } else if (Math.sign(fromWind) !== r.tack) r.tack = Math.sign(fromWind) as 1 | -1;
-        desired = down + Math.PI + r.tack * limit;
-      } else desired = toMark;
-      // Nobody waterstarts pointing upwind: get going on a beam reach first.
-      if (rig.mode !== 'riding' || (rig.speed < 6 && rig.modeTime < 8)) desired = down + Math.PI + r.tack * 95 * DEG;
-      carve = rig.mode === 'riding' ? carveToward(rig.heading, desired, down, r.turn, 1.7) : clamp(wrapAngle(desired - rig.heading) * 1.7, -1, 1);
-      bearAway = carve * rig.kiteSide > 0.3;
-      carve = assistCarve(rig, carve);
+      ({ carve, bearAway } = steerToMark(rig, mark.x, mark.z, down, r));
     }
     const intent = {
       power: rig.speed < 6 ? 1 : 0,

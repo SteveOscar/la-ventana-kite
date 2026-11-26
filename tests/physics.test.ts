@@ -5,6 +5,7 @@ import { KitePilot, type PilotIntent } from '../src/sim/autopilot.ts';
 import { Wind } from '../src/world/wind.ts';
 import { Waves } from '../src/world/waves.ts';
 import { DEG, KNOT } from '../src/core/math.ts';
+import { steerToMark, type RacerState } from '../src/sim/tactics.ts';
 
 const DT = 1 / 120;
 
@@ -113,4 +114,35 @@ test('a back roll held in the air is counted and landed', () => {
   assert.ok(j, 'landed');
   assert.equal(j!.flips, 1);
   assert.equal(j!.flipDir, -1);
+});
+
+test('a race AI beats up to a mark 430 m upwind and rounds it without getting lofted', () => {
+  const wind = new Wind({ knots: 19, fromDeg: 16, gustiness: 0.22 });
+  const waves = new Waves();
+  wind.update(0, 14);
+  waves.update(0, wind.base, Math.PI);
+  const env: RigEnv = { wind, waves, sdf: () => -500, depth: () => 20, surface: (x, z) => waves.height(x, z, 1) };
+  const rig = new Rig(9);
+  const pilot = new KitePilot();
+  const down = Math.atan2(wind.downwindX, -wind.downwindZ);
+  rig.spawn(0, 0, down + Math.PI / 2, env);
+  const mark = { x: 300, z: -430 };
+  const state: RacerState = { tack: 1, turn: { dir: 0 }, skill: 0.6 };
+  let lofts = 0;
+  rig.events.takeoff = () => lofts++;
+  let t = 0;
+  let rounded = false;
+  while (t < 170 && !rounded) {
+    wind.update(DT, 14);
+    waves.update(DT, wind.base, Math.PI);
+    const { carve, bearAway } = steerToMark(rig, mark.x, mark.z, down, state);
+    pilot.update(DT, rig, { power: rig.speed < 6 ? 1 : 0, send: false, loop: false, relaunch: true, go: true, bearAway });
+    rig.kite.steer = pilot.steer;
+    rig.kite.sheet = pilot.sheet;
+    rig.step(DT, { ...NO_INPUT, carve: rig.mode === 'air' ? 0 : carve }, env);
+    t += DT;
+    rounded = Math.hypot(rig.pos.x - mark.x, rig.pos.z - mark.z) < 40;
+  }
+  assert.ok(rounded, `reached the mark (${t.toFixed(0)} s)`);
+  assert.ok(lofts <= 1, `lofted ${lofts} times`);
 });
