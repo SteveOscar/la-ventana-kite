@@ -27,7 +27,7 @@ npm run dev        # dev server with hot reload, http://127.0.0.1:5188
 | Kite | W more power (dives to waterstart), S depower | ← → steer the bar, ↑ ↓ sheet in/out |
 | Jump | hold Space to load the edge and send the kite, release to pop | same |
 | In the air | W / S front/back roll, A / D spin, Shift grab, K kiteloop | same |
-| Other | R relaunch a downed kite, C camera, M map, H help, V hide HUD, Esc pause, drag the mouse to look around | |
+| Other | R relaunch a downed kite, C camera, M map, F photo mode, H help, V hide HUD, Esc pause, drag the mouse to look around | |
 
 Gamepads work too: left stick carves, A jumps, X grabs, Y kiteloops, B relaunches.
 
