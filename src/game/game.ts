@@ -204,6 +204,12 @@ export class Game {
       this.hudVisible = !this.hudVisible;
       this.hud.root.classList.toggle('off', !this.hudVisible);
     } else if (code === 'Enter') this.hud.skipDialog();
+    else if (code === 'KeyF') {
+      this.photo = !this.photo;
+      this.cam.freeOrbit = this.photo;
+      this.hud.root.classList.toggle('off', this.photo || !this.hudVisible);
+      if (!this.photo) this.hud.showToast('', 0.01);
+    }
   }
 
   /** Starts a session with the given config and mode. */
@@ -422,6 +428,9 @@ export class Game {
     });
   }
 
+  /** Photo mode: the moment is frozen and the camera orbits freely. */
+  photo = false;
+
   /** Smoothed CPU time spent per frame (ms), for performance checks. */
   frameMs = 0;
 
@@ -432,8 +441,11 @@ export class Game {
   }
 
   private frameInner(now: number) {
-    const dt = Math.min(0.05, (now - (this.last || now)) / 1000);
+    const realDt = Math.min(0.05, (now - (this.last || now)) / 1000);
     this.last = now;
+    if (this.photo && this.state !== 'playing') this.photo = false;
+    // In photo mode the world holds still; only the camera moves.
+    const dt = this.photo ? 0 : realDt;
     this.time += dt;
     this.fpsAcc += dt;
     this.frames++;
@@ -478,7 +490,7 @@ export class Game {
       const lm = w.data.world.landmarks;
       this.cam.cinematic(this.cineT, new THREE.Vector3(lm.mainBeach.x + 500, 0, lm.mainBeach.z - 900), { height: (x, z) => w.groundOrWater(x, z) });
     } else {
-      this.cam.update(dt, this.player.rig, { height: (x, z) => w.groundOrWater(x, z) });
+      this.cam.update(this.photo ? realDt : dt, this.player.rig, { height: (x, z) => w.groundOrWater(x, z) });
     }
     const focus = this.state === 'title' ? this.cam.camera.position : this.player.rig.pos;
     w.updateVisuals(dt, this.time, this.cam.camera, focus);

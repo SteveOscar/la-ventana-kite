@@ -135,7 +135,7 @@ export class Hud {
       <kbd>A</kbd><kbd>D</kbd> carve · <kbd>W</kbd> more power / waterstart · <kbd>S</kbd> depower<br>
       <kbd>Space</kbd> hold to load, release to jump<br>
       In the air: <kbd>W</kbd><kbd>S</kbd> front/back roll · <kbd>A</kbd><kbd>D</kbd> spin · <kbd>Shift</kbd> grab · <kbd>K</kbd> kiteloop<br>
-      <kbd>R</kbd> relaunch kite · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>Esc</kbd> pause · drag to look`
+      <kbd>R</kbd> relaunch kite · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>F</kbd> photo · <kbd>Esc</kbd> pause · drag to look`
       : `<b>Pro controls</b> (H to hide)<br>
       <kbd>←</kbd><kbd>→</kbd> steer kite · <kbd>↑</kbd><kbd>↓</kbd> sheet in/out<br>
       <kbd>A</kbd><kbd>D</kbd> carve · <kbd>Space</kbd> load edge, release to pop<br>

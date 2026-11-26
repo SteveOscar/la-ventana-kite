@@ -30,6 +30,8 @@ export class CameraRig {
   orbitPitch = 0;
   dragging = false;
   zoom = 1;
+  /** Photo mode: orbit offsets stay where the mouse leaves them. */
+  freeOrbit = false;
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(58, aspect, 0.3, 120000);
@@ -89,7 +91,7 @@ export class CameraRig {
     if (!this.initialized) this.yaw = travelYaw;
     // Swing behind the direction of travel, slowly enough to survive transitions.
     this.yaw = dampAngle(this.yaw, travelYaw, rig.mode === 'air' ? 0.8 : 1.6, dt);
-    if (!this.dragging) {
+    if (!this.dragging && !this.freeOrbit) {
       this.orbitYaw = damp(this.orbitYaw, 0, 0.6, dt);
       this.orbitPitch = damp(this.orbitPitch, 0, 0.6, dt);
     }
