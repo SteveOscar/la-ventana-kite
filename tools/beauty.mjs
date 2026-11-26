@@ -11,6 +11,7 @@ const errors = [];
 async function open(query, viewport = { width: 1600, height: 1000 }) {
   const page = await browser.newPage({ viewport });
   page.on('pageerror', (e) => errors.push(`${query}: ${e.message}`));
+  await page.routeWebSocket(/.*/, () => {});
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(`${query}: ${m.text()}`);
   });

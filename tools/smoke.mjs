@@ -33,6 +33,8 @@ page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning') errors.push(t);
 });
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}\n${e.stack}`));
+// Keep Vite's hot reload from restarting the page while files change.
+await page.routeWebSocket(/.*/, () => {});
 
 const t0 = Date.now();
 await page.goto(`${base}?${query}`, { waitUntil: 'load' });
