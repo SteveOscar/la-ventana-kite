@@ -18,7 +18,7 @@ import { AudioEngine } from '../audio/audio.ts';
 import { AiRiders } from './aiRiders.ts';
 import { Windsurfers } from './windsurfers.ts';
 import { Logbook } from './logbook.ts';
-import type { SessionSummary } from '../ui/menu.ts';
+import { trickName, type SessionSummary } from '../ui/menu.ts';
 import { SPECIES } from '../content/culture.ts';
 
 export type ModeId = 'free' | 'school' | 'downwinder' | 'race';
@@ -75,7 +75,7 @@ export class Game {
   readonly ai: AiRiders;
   readonly logbook = new Logbook();
   /** Per-session statistics for the summary. */
-  stats = { distance: 0, topSpeed: 0, sightings: [] as string[], landmarks: [] as string[] };
+  stats = { distance: 0, topSpeed: 0, sightings: [] as string[], landmarks: [] as string[], newTricks: [] as string[] };
   onSessionEnd: ((s: SessionSummary) => void) | null = null;
   /** Other riders' positions for the minimap. */
   others: { x: number; z: number }[] = [];
@@ -218,7 +218,7 @@ export class Game {
     this.scoring.jumps = this.scoring.cleanLandings = this.scoring.crashes = 0;
     this.scoring.best = { height: 0, airtime: 0, points: 0 };
     this.sessionTime = 0;
-    this.stats = { distance: 0, topSpeed: 0, sightings: [], landmarks: [] };
+    this.stats = { distance: 0, topSpeed: 0, sightings: [], landmarks: [], newTricks: [] };
     this.world.wildlife.setMonth(config.month);
     this.player.autoStart = true;
     this.mode = mode;
@@ -306,9 +306,11 @@ export class Game {
         { label: 'Distancia', value: `${(this.stats.distance / 1000).toFixed(1)} km` },
         { label: 'Vel. máx · Top speed', value: `${(this.stats.topSpeed / KNOT).toFixed(1)} kn` },
       ],
-      note: this.stats.sightings.length
-        ? `Wildlife today: ${this.stats.sightings.map((id) => SPECIES.find((x) => x.id === id)?.en ?? id).join(', ')}.`
-        : 'Keep an eye out for pelicans, dolphins and whales next time.',
+      note:
+        (this.stats.sightings.length
+          ? `Wildlife today: ${this.stats.sightings.map((id) => SPECIES.find((x) => x.id === id)?.en ?? id).join(', ')}.`
+          : 'Keep an eye out for pelicans, dolphins and whales next time.') +
+        (this.stats.newTricks.length ? ` New in your logbook: ${this.stats.newTricks.map(trickName).join(', ')}.` : ''),
     };
     this.setState('summary');
     this.audio.music('menu');
@@ -325,7 +327,7 @@ export class Game {
 
   private handleLand(j: JumpResult) {
     const call = this.scoring.land(j);
-    if (j.quality !== 'crash') for (const t of call.tags) this.logbook.addTrick(t);
+    if (j.quality !== 'crash') for (const t of call.tags) if (this.logbook.addTrick(t)) this.stats.newTricks.push(t);
     if (j.height > 1.0 || j.quality === 'crash' || call.tags.length) {
       this.hud.showTrick(call.title, call.detail, call.points, call.cheer, call.good);
     }
