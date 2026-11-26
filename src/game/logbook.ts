@@ -11,7 +11,7 @@ export interface LogbookData {
   schoolDone: boolean;
   downwinderBest: number | null;
   raceBest: number | null;
-  settings: { volume: number; quality: 'high' | 'medium'; assisted: boolean };
+  settings: { volume: number; quality: 'high' | 'medium'; assisted: boolean; muted: boolean };
 }
 
 const EMPTY: LogbookData = {
@@ -25,7 +25,7 @@ const EMPTY: LogbookData = {
   schoolDone: false,
   downwinderBest: null,
   raceBest: null,
-  settings: { volume: 0.8, quality: 'high', assisted: true },
+  settings: { volume: 0.8, quality: 'high', assisted: true, muted: false },
 };
 
 /** Persistent progress in localStorage. */

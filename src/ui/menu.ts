@@ -63,17 +63,29 @@ export class Menus {
       this.unlocked = true;
       game.audio.unlock();
       game.audio.setVolume(logbook.data.settings.volume);
+      game.audio.muted = logbook.data.settings.muted;
       game.audio.music(game.state === 'playing' ? 'session' : 'menu');
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
     game.input.onKey((code) => {
+      if (code === 'KeyN') {
+        this.toggleMute();
+        game.hud.showToast(logbook.data.settings.muted ? 'Sonido apagado · Muted' : 'Sonido · Sound on', 1.5);
+      }
       if (code === 'Escape' || code === 'KeyP') {
         if (game.state === 'playing') this.pause();
         else if (game.state === 'paused') this.resume();
       }
     });
     setInterval(() => this.rotateFact(), 9000);
+  }
+
+  toggleMute() {
+    const s = this.logbook.data.settings;
+    s.muted = !s.muted;
+    this.game.audio.muted = s.muted;
+    this.logbook.save();
   }
 
   private click(name = 'ui') {
@@ -330,7 +342,8 @@ export class Menus {
     const node = el(`
       <div class="setup">
         <h2>Opciones</h2>
-        <div class="opt"><div class="label">Volumen · Volume</div><input type="range" min="0" max="1" step="0.05" value="${s.volume}" style="width:100%;pointer-events:auto"></div>
+        <div class="opt"><div class="label">Volumen · Volume</div><input type="range" min="0" max="1" step="0.05" value="${s.volume}" style="width:100%;pointer-events:auto">
+          <div class="chips" style="margin-top:8px"><button class="chip ${s.muted ? 'on' : ''}" data-act="mute">${s.muted ? 'Sonido apagado · Muted' : 'Silenciar · Mute (N)'}</button></div></div>
         <div class="opt"><div class="label">Calidad · Quality</div><div class="chips">
           <button class="chip ${s.quality === 'high' ? 'on' : ''}" data-q="high">Alta · High</button>
           <button class="chip ${s.quality === 'medium' ? 'on' : ''}" data-q="medium">Media · Medium<small>for slower laptops</small></button>
@@ -343,6 +356,10 @@ export class Menus {
       s.volume = Number(range.value);
       this.game.audio.setVolume(s.volume);
       this.logbook.save();
+    });
+    node.querySelector('[data-act="mute"]')!.addEventListener('click', () => {
+      this.toggleMute();
+      this.settings(back);
     });
     node.querySelectorAll<HTMLButtonElement>('[data-q]').forEach((b) =>
       b.addEventListener('click', () => {
