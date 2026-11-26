@@ -85,9 +85,11 @@ void main() {
     vec3 sand = mix(srgb(vec3(0.94, 0.87, 0.72)), srgb(vec3(0.98, 0.93, 0.82)), n3);
     col = mix(col, sand, smoothstep(0.05, 0.6, o.g));
     float road = o.r;
-    vec3 asphalt = srgb(vec3(0.27, 0.27, 0.27));
+    vec3 asphalt = srgb(vec3(0.29, 0.28, 0.27)) * (0.92 + 0.12 * n3);
     vec3 dirt = srgb(vec3(0.86, 0.78, 0.62));
-    col = mix(col, road > 0.8 ? asphalt : dirt, smoothstep(0.12, 0.35, road) * (road > 0.8 ? 0.95 : 0.7));
+    // Dirt streets top out near 0.55; the paved highway reaches 1, with dirt shoulders.
+    col = mix(col, dirt, smoothstep(0.12, 0.35, road) * 0.7);
+    col = mix(col, asphalt, smoothstep(0.66, 0.86, road) * 0.95);
   }
 
   // Wet sand at the swash line, then the seabed fading with depth.

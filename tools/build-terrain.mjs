@@ -204,7 +204,8 @@ function fillPolygon(chan, pts, value) {
 }
 
 const ROAD_STYLE = {
-  secondary: [8, 1], tertiary: [7.5, 1],
+  // Paved highway drawn wider than the 5 m raster so its centre line never drops out.
+  secondary: [12, 1], tertiary: [11, 1],
   unclassified: [6, 0.55], residential: [5.5, 0.55], service: [4, 0.5], track: [3.2, 0.45],
   path: [1.6, 0.3], footway: [1.6, 0.3], steps: [1.6, 0.3],
 };
