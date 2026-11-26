@@ -204,6 +204,8 @@ export class RiderModel {
     let sinkT = 0;
     if (mode === 'riding') {
       crouchT = 0.25 + rig.edge * 0.35;
+      // Knees soak up the landing.
+      if (rig.sinceJump < 0.5) crouchT += 0.55 * (1 - rig.sinceJump / 0.5);
       lean = clamp(Math.abs(rig.lean) * 0.9 + rig.edge * 0.18, 0.05, 0.75);
     } else if (mode === 'air') {
       crouchT = rig.grab ? 0.95 : 0.5;
