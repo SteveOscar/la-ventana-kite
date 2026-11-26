@@ -290,6 +290,8 @@ export class RiderModel {
     p.harness.quaternion.copy(p.torso.quaternion);
     p.head.position.copy(j.head);
     p.head.quaternion.copy(p.torso.quaternion);
+    // Riders look where they're going, glancing back at the kite in the air.
+    p.head.rotateY(travel * (mode === 'riding' ? 0.65 : mode === 'air' ? 0.2 : 0));
     placeLimb(p.thighL, j.hipF, j.kneeF);
     placeLimb(p.shinL, j.kneeF, j.footF);
     placeLimb(p.thighR, j.hipB, j.kneeB);
