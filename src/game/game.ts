@@ -15,6 +15,10 @@ import { Scoring } from './scoring.ts';
 import { MONTHS, MONTH_DAY } from '../content/culture.ts';
 import { Spray, RiderEffects } from '../render/effects.ts';
 import { AudioEngine } from '../audio/audio.ts';
+import { AiRiders } from './aiRiders.ts';
+import { Logbook } from './logbook.ts';
+import type { SessionSummary } from '../ui/menu.ts';
+import { SPECIES } from '../content/culture.ts';
 
 export type ModeId = 'free' | 'school' | 'downwinder' | 'race';
 
@@ -65,6 +69,13 @@ export class Game {
   readonly playerFx = new RiderEffects();
   readonly audio = new AudioEngine();
   readonly root: HTMLElement;
+  readonly ai: AiRiders;
+  readonly logbook = new Logbook();
+  /** Per-session statistics for the summary. */
+  stats = { distance: 0, topSpeed: 0, sightings: [] as string[], landmarks: [] as string[] };
+  onSessionEnd: ((s: SessionSummary) => void) | null = null;
+  /** Other riders' positions for the minimap. */
+  others: { x: number; z: number }[] = [];
   /** Fixed debug viewpoint (?view=x,y,z,tx,ty,tz) for screenshots. */
   debugView: THREE.Vector3[] | null = null;
   state: GameState = 'title';
@@ -88,7 +99,6 @@ export class Game {
     splash: ((strength: number) => void)[];
   } = { land: [], crash: [], takeoff: [], waterstart: [], splash: [] };
   onStateChange: ((s: GameState) => void) | null = null;
-  onSighting: ((speciesId: string) => void) | null = null;
 
   constructor(root: HTMLElement, data: TerrainData) {
     this.root = root;
@@ -99,7 +109,7 @@ export class Game {
     this.renderer.toneMappingExposure = 0.92;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.domElement.className = 'gl';
     root.appendChild(this.renderer.domElement);
 
@@ -121,7 +131,10 @@ export class Game {
     this.listeners.takeoff.push(() => this.audio.event('pop'));
     this.listeners.crash.push(() => this.audio.event('crash'));
     this.listeners.land.push((j) => this.audio.event(j.quality === 'clean' ? 'land' : j.quality === 'hard' ? 'hardLand' : 'crash', Math.min(1, j.height / 8)));
-    this.world.wildlife.onSighting = (id) => this.onSighting?.(id);
+    this.world.wildlife.onSighting = (id) => this.handleSighting(id);
+    this.ai = new AiRiders(this, 16);
+    this.ai.reset(this);
+    this.systems.push(this.ai);
     this.player.rig.events = {
       land: (_r, j) => this.handleLand(j),
       crash: (_r, why) => {
@@ -192,12 +205,17 @@ export class Game {
     this.player.manual = !config.assisted;
     this.player.pilot.reset();
     this.hud.setHelp(config.assisted);
+    this.hud.showHelpFor(this.logbook.data.sessions < 2 ? 40 : 15);
     this.scoring.score = 0;
     this.scoring.breakCombo();
     this.scoring.jumps = this.scoring.cleanLandings = this.scoring.crashes = 0;
     this.scoring.best = { height: 0, airtime: 0, points: 0 };
     this.sessionTime = 0;
+    this.stats = { distance: 0, topSpeed: 0, sightings: [], landmarks: [] };
+    this.world.wildlife.setMonth(config.month);
+    this.player.autoStart = true;
     this.mode = mode;
+    this.ai.reset(this);
     this.hud.clearDialog();
     this.hud.setObjective(null);
     mode.start(this);
@@ -215,6 +233,66 @@ export class Game {
     this.cam.snap();
   }
 
+  private handleSighting(id: string) {
+    if (this.state !== 'playing' || this.stats.sightings.includes(id)) return;
+    this.stats.sightings.push(id);
+    const sp = SPECIES.find((s) => s.id === id);
+    const isNew = this.logbook.addSpecies(id);
+    if (sp) this.hud.showToast(`${isNew ? '¡Nuevo! ' : ''}${sp.es} · ${sp.en}`, 3.5);
+    if (isNew) this.audio.event('checkpoint');
+  }
+
+  private visit(id: string, label: string) {
+    if (this.stats.landmarks.includes(id)) return;
+    this.stats.landmarks.push(id);
+    if (this.logbook.addLandmark(id)) this.hud.showToast(`📍 ${label}`, 3);
+  }
+
+  /** Landmarks count as visited when you ride past them. */
+  private checkLandmarks() {
+    const r = this.player.rig.pos;
+    const lm = this.world.data.world.landmarks;
+    const near = (p: { x: number; z: number }, d: number) => Math.hypot(r.x - p.x, r.z - p.z) < d;
+    if (near(lm.hotSprings, 450)) this.visit('hotSprings', 'Aguas termales · Hot Springs beach');
+    if (near(lm.elSargento, 600)) this.visit('elSargento', 'El Sargento');
+    if (near(lm.campNorth, 400)) this.visit('campground', 'El campamento · The campground');
+    if (near(lm.mainBeach, 450)) this.visit('laVentana', 'La Ventana');
+    const off = r.x - (this.world.data.coastX(r.z) ?? 0);
+    if (off > 1800) this.visit('cerralvo', 'Isla Cerralvo dead ahead: out in the channel');
+  }
+
+  applyQuality(q: 'high' | 'medium') {
+    this.renderer.setPixelRatio(q === 'high' ? Math.min(window.devicePixelRatio, 1.75) : 1);
+    this.world.sky.sun.shadow.mapSize.set(q === 'high' ? 2048 : 1024, q === 'high' ? 2048 : 1024);
+    this.world.sky.sun.shadow.map?.dispose();
+    this.world.sky.sun.shadow.map = null;
+    this.resize();
+  }
+
+  /** Ends the session and shows the summary (modes may supply their own). */
+  endSession(reason: string, summary?: SessionSummary) {
+    if (this.state === 'summary') return;
+    const sc = this.scoring;
+    this.logbook.recordSession(Math.round(sc.score), sc.best.height, sc.best.airtime);
+    const s: SessionSummary = summary ?? {
+      title: reason === 'sunset' ? 'Se acabó el viento · Sunset' : 'Fin de la sesión',
+      lines: [
+        { label: 'Puntos · Score', value: Math.round(sc.score).toLocaleString() },
+        { label: 'Mejor salto · Best jump', value: `${sc.best.height.toFixed(1)} m` },
+        { label: 'Vuelo · Hang time', value: `${sc.best.airtime.toFixed(1)} s` },
+        { label: 'Saltos · Jumps', value: `${sc.jumps} (${sc.cleanLandings} clean)` },
+        { label: 'Distancia', value: `${(this.stats.distance / 1000).toFixed(1)} km` },
+        { label: 'Vel. máx · Top speed', value: `${(this.stats.topSpeed / KNOT).toFixed(1)} kn` },
+      ],
+      note: this.stats.sightings.length
+        ? `Wildlife today: ${this.stats.sightings.map((id) => SPECIES.find((x) => x.id === id)?.en ?? id).join(', ')}.`
+        : 'Keep an eye out for pelicans, dolphins and whales next time.',
+    };
+    this.setState('summary');
+    this.audio.music('menu');
+    this.onSessionEnd?.(s);
+  }
+
   start() {
     const loop = (now: number) => {
       requestAnimationFrame(loop);
@@ -225,6 +303,7 @@ export class Game {
 
   private handleLand(j: JumpResult) {
     const call = this.scoring.land(j);
+    if (j.quality !== 'crash') for (const t of call.tags) this.logbook.addTrick(t);
     if (j.height > 1.0 || j.quality === 'crash' || call.tags.length) {
       this.hud.showTrick(call.title, call.detail, call.points, call.cheer, call.good);
     }
@@ -262,7 +341,7 @@ export class Game {
     if (assisted && rig.mode === 'riding') {
       const downwindness = rig.dirX * rig.windX + rig.dirZ * rig.windZ;
       // Wait for the kite to reach 12 before carving through the downwind part of a transition.
-      if (bearAway && downwindness > 0.25 && rig.kite.elevation < 58 * DEG) carve *= 0.4;
+      if (bearAway && downwindness > 0.1 && rig.kite.elevation < 64 * DEG) carve *= 0.22;
       // After landing pointed downwind, head back up onto a reach.
       if (carve === 0 && downwindness > 0.8 && rig.sinceLanding < 4) carve = -side * 0.6;
     }
@@ -278,7 +357,7 @@ export class Game {
       grab,
       drag: carve,
     };
-    const go = power > 0.3 || (assisted && rig.modeTime > 2.4 && (rig.mode === 'water' || rig.mode === 'crash'));
+    const go = power > 0.3 || (assisted && this.player.autoStart && rig.modeTime > 2.4 && (rig.mode === 'water' || rig.mode === 'crash'));
     const intent: PilotIntent = {
       power: air ? 0 : power,
       send: jump && rig.mode === 'riding',
@@ -330,7 +409,12 @@ export class Game {
       const { input, intent } = this.readControls();
       this.player.simulate(dt, input, intent, w.env);
       this.scoring.update(dt);
+      const rig = this.player.rig;
+      if (rig.mode === 'riding') this.stats.distance += rig.speed * dt;
+      this.stats.topSpeed = Math.max(this.stats.topSpeed, rig.mode === 'riding' ? rig.speed : 0);
+      this.checkLandmarks();
       this.mode?.update(this, dt);
+      if (w.hours > 18.15 && this.state === 'playing') this.endSession('sunset');
     } else if (this.state === 'title') {
       w.step(dt);
       this.cineT += dt;
@@ -372,7 +456,7 @@ export class Game {
         combo: this.scoring.combo,
         assisted: this.config.assisted,
         pilotTarget: tgt,
-        others: (this as unknown as { otherPositions?: { x: number; z: number }[] }).otherPositions ?? [],
+        others: this.others,
         markers: this.mode?.markers?.(this) ?? [],
       });
     }

@@ -17,6 +17,8 @@ export class Kiter {
   manual = false;
   manualSteer = 0;
   manualSheet = 0.8;
+  /** Waterstart on its own after a moment in assisted mode (off for the kite school). */
+  autoStart = true;
   private acc = 0;
 
   constructor(kiteSize: number, look: RiderLook, palette: KitePalette, lineColor?: number) {

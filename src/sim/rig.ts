@@ -97,6 +97,8 @@ export class Rig {
   readonly takeoffPos = new Vector3();
   grabs = new Set<number>();
   kiteTurn = 0;
+  /** Lowest kite elevation during the current jump (a real kiteloop dives through the power zone). */
+  private minKiteElev = 2;
   private prevKiteH = new Vector3();
   private prevEdge = false;
   private edgeHeld = 0;
@@ -105,11 +107,15 @@ export class Rig {
   private overTimer = 0;
   private slipTimer = 0;
   crashReason = '';
+  /** Set by the autopilot mid-transition: the board runs flat and keeps its momentum. */
+  coasting = false;
   /** True-wind downwind direction, refreshed every step. */
   windX = 0;
   windZ = 1;
   /** Seconds since the rider last landed or stood up, for "landed clean" grace. */
   sinceLanding = 99;
+  /** Seconds since the last landing from a jump. */
+  sinceJump = 99;
   events: RigEvents = {};
 
   constructor(kiteSize: number) {
@@ -160,6 +166,7 @@ export class Rig {
   step(dt: number, input: RigInput, env: RigEnv) {
     this.modeTime += dt;
     this.sinceLanding += dt;
+    this.sinceJump += dt;
     this.windX = env.wind.downwindX;
     this.windZ = env.wind.downwindZ;
     this.harness.copy(this.pos);
@@ -171,6 +178,7 @@ export class Rig {
     if (this.mode === 'air' && this.kite.mode === 'flying') {
       tmp.crossVectors(this.prevKiteH, this.kite.h);
       this.kiteTurn += Math.atan2(tmp.dot(this.kite.u), this.prevKiteH.dot(this.kite.h));
+      this.minKiteElev = Math.min(this.minKiteElev, this.kite.elevation);
     }
     this.force.copy(this.kite.u).multiplyScalar(this.kite.tension);
 
@@ -228,7 +236,7 @@ export class Rig {
 
     // Planing drag: a displacement hump below ~4 m/s, then quadratic; chop and edging add drag.
     const chop = 1 + env.waves.amplitude * 0.9;
-    let drag = 2.15 * chop * vf * speed + 105 * vf * Math.max(0, 1 - speed / 4.2);
+    let drag = (2.15 * chop * vf * speed + 105 * vf * Math.max(0, 1 - speed / 4.2)) * (this.coasting ? 0.55 : 1);
     // Induced drag of the edge holding the kite's sideways pull: it is what limits pointing upwind.
     drag += Math.sign(vf) * (0.0062 * Fl * Fl) / Math.max(vf * vf, 4);
     drag += 1.1 * vf * speed * this.edge * (input.edge ? 1 : 0.35);
@@ -310,6 +318,7 @@ export class Rig {
     this.grabTime = 0;
     this.grabs.clear();
     this.kiteTurn = 0;
+    this.minKiteElev = 2;
     this.events.takeoff?.(this, lofted);
   }
 
@@ -375,7 +384,7 @@ export class Rig {
     let reason: string | undefined;
     if (Math.abs(flipRem) > 55 * DEG) {
       quality = 'crash';
-      reason = 'Under-rotated: landed on your back';
+      reason = 'Rotation not finished: landed on your back';
     } else if (Math.abs(spinRem) > 75 * DEG && Math.abs(spinRem) < 105 * DEG) {
       quality = 'crash';
       reason = 'Landed sideways';
@@ -403,7 +412,7 @@ export class Rig {
       flipDir: Math.sign(this.flip),
       grabTime: this.grabTime,
       grabs: [...this.grabs],
-      kiteloop: Math.abs(this.kiteTurn) > 1.75 * Math.PI,
+      kiteloop: Math.abs(this.kiteTurn) > 1.8 * Math.PI && this.minKiteElev < 42 * DEG,
       quality,
       switchLanding,
       reason,
@@ -426,6 +435,7 @@ export class Rig {
     this.grab = 0;
     this.setMode('riding');
     this.sinceLanding = 0;
+    this.sinceJump = 0;
     this.sinkTimer = 0;
     this.events.land?.(this, jump);
   }

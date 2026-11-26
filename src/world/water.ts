@@ -118,12 +118,19 @@ void main() {
   vec2 wd = uWindDir;
   vec2 side = vec2(-wd.y, wd.x);
   vec2 q = vec2(dot(p, side), dot(p, wd));
-  vec3 r1 = ripple(q * 0.055 - vec2(0.0, uTime * 0.09));
-  vec3 r2 = ripple(q * 0.13 * mat2(0.8, 0.6, -0.6, 0.8) - vec2(0.03, uTime * 0.16));
-  vec3 r3 = ripple(q * 0.021 + vec2(uTime * 0.01, -uTime * 0.035));
-  float far = smoothstep(150.0, 3000.0, vDist);
-  float rough = (0.55 + 0.45 * uWindFoam + 0.4 * max(g, 0.0)) * (1.0 - far * 0.75);
-  vec3 dn = (r1 * 0.45 + r2 * 0.25 + r3 * 0.45) * rough;
+  // Layers at unrelated scales and angles so the tile never lines up; slow large-scale
+  // modulation breaks up any remaining repetition.
+  vec3 r1 = ripple(q * vec2(0.083, 0.071) - vec2(0.0, uTime * 0.11));
+  vec3 r2 = ripple(q * 0.197 * mat2(0.8, 0.6, -0.6, 0.8) - vec2(0.03, uTime * 0.19));
+  vec3 r3 = ripple(q * 0.037 * mat2(0.94, -0.34, 0.34, 0.94) + vec2(uTime * 0.012, -uTime * 0.05));
+  vec3 r4 = ripple(q * 0.43 * mat2(0.5, -0.87, 0.87, 0.5) - vec2(uTime * 0.05, uTime * 0.3));
+  float far = smoothstep(80.0, 1400.0, vDist);
+  float patchy = 0.65 + 0.7 * tNoise(p * 0.0035 + 13.0);
+  float rough = (0.5 + 0.4 * uWindFoam + 0.35 * max(g, 0.0)) * patchy * (1.0 - far * 0.85);
+  // Fine layers fade out first so they never shimmer into a grid in the middle distance.
+  float fineFade = 1.0 - smoothstep(15.0, 140.0, vDist);
+  float midFade = 1.0 - smoothstep(50.0, 450.0, vDist);
+  vec3 dn = (r1 * 0.34 + r2 * 0.26 * midFade + r3 * 0.26 + r4 * 0.18 * fineFade) * rough;
   vec3 N = normalize(vNormal + dn * smoothstep(0.05, 1.2, depth));
 
   float ndv = max(dot(N, V), 0.0);
@@ -185,8 +192,8 @@ function heightTexture(grid: Grid) {
 function rippleTexture(size = 256) {
   const rand = mulberry32(42);
   const waves: { kx: number; kz: number; a: number; ph: number }[] = [];
-  for (let i = 0; i < 48; i++) {
-    const f = 2 + Math.floor(rand() * 22);
+  for (let i = 0; i < 90; i++) {
+    const f = 3 + Math.floor(rand() * 28);
     const ang = (rand() - 0.5) * Math.PI * 1.1;
     const kx = Math.round(Math.sin(ang) * f), kz = Math.round(Math.cos(ang) * f);
     if (kx === 0 && kz === 0) continue;

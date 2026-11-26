@@ -114,6 +114,14 @@ export class Hud {
     this.setHelp(true);
   }
 
+  /** Shows the controls card for a while at the start of a session. */
+  showHelpFor(secs: number) {
+    this.help.classList.remove('hidden');
+    this.helpTimer = secs;
+  }
+
+  private helpTimer = 0;
+
   setHelp(assisted: boolean) {
     this.help.innerHTML = assisted
       ? `<b>Controls</b> (H to hide)<br>
@@ -129,6 +137,7 @@ export class Hud {
   }
 
   toggleHelp() {
+    this.helpTimer = 0;
     this.help.classList.toggle('hidden');
   }
 
@@ -271,6 +280,10 @@ export class Hud {
     this.drawGauge(f);
     this.drawMap(f);
 
+    if (this.helpTimer > 0) {
+      this.helpTimer -= dt;
+      if (this.helpTimer <= 0) this.help.classList.add('hidden');
+    }
     if (this.trickTimer > 0) {
       this.trickTimer -= dt;
       if (this.trickTimer <= 0) this.trick.classList.remove('show');

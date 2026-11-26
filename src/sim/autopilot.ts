@@ -130,20 +130,9 @@ export class KitePilot {
         break;
       }
       case 'riding': {
-        if (this.transitioning || (kiteSide !== side && Math.abs(kite.azimuth) > 18 * DEG)) {
-          this.phase = 'transition';
-          this.transitioning = kiteSide !== side;
-          if (elev < 64 * DEG && kiteSide !== side) {
-            targetSide = kiteSide;
-            elevation = 82 * DEG;
-            inset = -2 * DEG;
-            sheet = 0.7;
-            break;
-          }
-          this.transitioning = false;
-        }
         if (intent.send) {
           this.phase = 'send';
+          this.transitioning = false;
           // Sweep the kite up through the window toward 12.
           targetSide = side;
           elevation = 84 * DEG;
@@ -151,18 +140,24 @@ export class KitePilot {
           sheet = 1;
           break;
         }
-        // Bearing away toward dead downwind: lift the kite to 12 ready to transition.
+        // Transitions: lift the kite to 12 before the board turns through downwind, then
+        // dive it on the new side. Also catches a rider who carved round with the kite low.
         const downwindness = rig.dirX * rig.windX + rig.dirZ * rig.windZ;
-        if (downwindness > 0.62 && intent.bearAway) {
-          this.phase = 'transition';
-          targetSide = kiteSide;
-          elevation = 80 * DEG;
-          inset = 0;
-          sheet = 0.75;
-          break;
+        const wrongSide = kiteSide !== side && Math.abs(kite.azimuth) > 15 * DEG;
+        if (intent.bearAway && downwindness > 0.15 && elev < 70 * DEG) this.transitioning = true;
+        if (this.transitioning || wrongSide) {
+          if (elev < 66 * DEG && (wrongSide || kiteSide === side)) {
+            this.phase = 'transition';
+            targetSide = kiteSide;
+            elevation = 82 * DEG;
+            inset = 0;
+            sheet = 0.75;
+            break;
+          }
+          if (!intent.bearAway || wrongSide || elev >= 66 * DEG) this.transitioning = false;
         }
         this.phase = 'ride';
-        if ((this.sinceSideChange < 1.6 && kiteSide === side) || (rig.sinceLanding < 1.1 && rig.speed < 7)) {
+        if ((this.sinceSideChange < 1.6 && kiteSide === side) || (rig.sinceJump < 1.1 && rig.speed < 7)) {
           // Power stroke on the new tack after a transition or a landing.
           elevation = 30 * DEG;
           inset = 14 * DEG;
@@ -227,7 +222,8 @@ export class KitePilot {
     windowPoint(kite.center, elevation, targetSide, inset, this.target);
     this.sheet = damp(this.sheet, sheet, 4, dt);
     // Gentle hands over the top; full lock only when diving or sending.
-    const maxSteer = this.phase === 'transition' ? 0.5 : this.phase === 'park' ? 0.6 : this.phase === 'ride' ? 0.85 : 1;
+    const maxSteer = this.phase === 'transition' ? 0.85 : this.phase === 'park' ? 0.6 : this.phase === 'ride' ? 0.85 : 1;
+    rig.coasting = this.phase === 'transition' || (this.phase === 'ride' && this.sinceSideChange < 1.6);
     this.steer = this.steerToward(rig, this.target) * maxSteer;
   }
 
@@ -247,10 +243,11 @@ export class KitePilot {
     tmpG.divideScalar(dist);
     tmpC.crossVectors(kite.h, tmpG);
     let err = Math.atan2(tmpC.dot(kite.u), kite.h.dot(tmpG));
-    if (Math.abs(err) < 1.6) this.uturn = 0;
+    if (Math.abs(err) < 1.6 || kite.speed > 9) this.uturn = 0;
     else if (Math.abs(err) > 2.1 || this.uturn !== 0) {
+      // A slow kite pointing away from the target: commit to one turn direction (through
+      // "up" when low in the window) instead of dithering.
       if (this.uturn === 0) {
-        // Low in the window, turn through "up" rather than looping down through the power zone.
         this.uturn = Math.sign(err) || 1;
         tmpUp.set(0, 1, 0).addScaledVector(kite.u, -kite.u.y);
         if (kite.u.y < 0.85 && tmpUp.lengthSq() > 1e-4) {
