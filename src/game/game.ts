@@ -140,6 +140,14 @@ export class Game {
     this.listeners.crash.push(() => this.audio.event('crash'));
     this.listeners.land.push((j) => this.audio.event(j.quality === 'clean' ? 'land' : j.quality === 'hard' ? 'hardLand' : 'crash', Math.min(1, j.height / 8)));
     this.world.wildlife.onSighting = (id) => this.handleSighting(id);
+    this.world.wildlife.onEvent = (e) => {
+      const c = this.cam.camera.position;
+      const d = Math.hypot(e.x - c.x, e.z - c.z);
+      const whale = e.species === 'humpback' && (e.kind === 'blow' || e.kind === 'breach');
+      const prox = clamp(1 - d / (whale ? 1500 : 350), 0, 1) * e.strength;
+      if (prox < 0.04) return;
+      this.audio.event(whale ? 'whale' : 'splash', whale ? prox : prox * 0.5);
+    };
     this.ai = new AiRiders(this, 16);
     this.ai.reset(this);
     this.systems.push(this.ai, new Windsurfers(this, 6));
