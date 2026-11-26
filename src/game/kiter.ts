@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Rig, type RigEnv, type RigInput } from '../sim/rig.ts';
+import { Waves } from '../world/waves.ts';
 import { KitePilot, type PilotIntent } from '../sim/autopilot.ts';
 import { RiderModel, type RiderLook } from '../render/riderModel.ts';
 import { KiteModel, type KitePalette } from '../render/kiteModel.ts';
@@ -59,7 +60,11 @@ export class Kiter {
     return steps;
   }
 
-  updateVisuals(dt: number) {
+  updateVisuals(dt: number, env?: RigEnv) {
+    // The board rides the chop: pitch it with the wave slope along the direction of travel.
+    const rig = this.rig;
+    this.rider.wavePitch =
+      env && rig.mode === 'riding' ? Math.atan(env.waves.slopeAlong(rig.pos.x, rig.pos.z, rig.dirX, rig.dirZ, Waves.depthFactor(env.depth(rig.pos.x, rig.pos.z)))) : 0;
     this.rider.update(dt, this.rig);
     this.kite.update(dt, this.rig.kite, this.rider.barLeft, this.rider.barRight, this.rider.barCenter);
   }

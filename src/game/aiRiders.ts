@@ -114,7 +114,7 @@ export class AiRiders {
         const { input, intent } = this.think(a, game, dt);
         a.k.simulate(dt, input, intent, w.env, dist < 1500 ? 8 : 3);
       }
-      if (visible) a.k.updateVisuals(dt);
+      if (visible) a.k.updateVisuals(dt, dist < 300 ? w.env : undefined);
       if (dist < 600) a.fx.update(dt, rig, w.env, dist < 120 ? spray : null);
       a.shadow.group.visible = dist < 250;
       if (dist < 250) a.shadow.update(rig, w.env, w.skyState.sunDir, a.k.kite.span.x, a.k.kite.span.z, rig.kite.size);

@@ -129,7 +129,7 @@ export class Race implements Mode {
       bearAway,
     };
     k.simulate(dt, { ...NO_INPUT, carve: rig.mode === 'air' ? 0 : carve }, intent, w.env);
-    k.updateVisuals(dt);
+    k.updateVisuals(dt, w.env);
     const cam = game.cam.camera.position;
     if (Math.hypot(rig.pos.x - cam.x, rig.pos.z - cam.z) < 500) r.fx!.update(dt, rig, w.env, game.spray);
   }

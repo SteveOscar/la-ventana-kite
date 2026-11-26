@@ -75,6 +75,9 @@ export class RiderModel {
   readonly barLeft = new THREE.Vector3();
   readonly barRight = new THREE.Vector3();
   readonly barCenter = new THREE.Vector3();
+  /** Wave slope under the board along the direction of travel (radians), set by the owner. */
+  wavePitch = 0;
+  private pitchS = 0;
   private faceYaw = 0;
   private crouch = 0.3;
   private leanS = 0;
@@ -305,7 +308,8 @@ export class RiderModel {
     const edgeT = mode === 'riding' ? 0.12 + this.leanS * 0.45 : mode === 'air' ? 0.15 : 0.05;
     this.boardEdge = damp(this.boardEdge, edgeT, 8, dt);
     this.board.position.set(0, (j.footF.y + j.footB.y) / 2 - 0.05, (j.footF.z + j.footB.z) / 2);
-    this.board.rotation.set(-this.boardEdge, 0, Math.atan2(j.footF.y - j.footB.y, (j.footF.x - j.footB.x) || 1e-3) * (travel > 0 ? 1 : -1));
+    this.pitchS = damp(this.pitchS, this.wavePitch, 10, dt);
+    this.board.rotation.set(-this.boardEdge, 0, Math.atan2(j.footF.y - j.footB.y, (j.footF.x - j.footB.x) || 1e-3) * (travel > 0 ? 1 : -1) + this.pitchS * travel);
     this.board.visible = rig.hasBoard;
     this.lostBoard.visible = !rig.hasBoard;
     if (!rig.hasBoard) {

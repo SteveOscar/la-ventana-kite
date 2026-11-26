@@ -465,7 +465,7 @@ export class Game {
     for (const s of this.systems) s.update(dt, this);
     this.player.group.visible = this.state !== 'title';
     this.playerFx.wake.mesh.visible = this.state !== 'title';
-    this.player.updateVisuals(dt);
+    this.player.updateVisuals(dt, w.env);
     if (this.state === 'playing') this.playerFx.update(dt, this.player.rig, w.env, this.spray);
     this.spray.update(dt, w.wind.downwindX * w.wind.base, w.wind.downwindZ * w.wind.base);
 
