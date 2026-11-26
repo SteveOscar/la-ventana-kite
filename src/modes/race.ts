@@ -1,6 +1,6 @@
 import type { Game, Mode } from '../game/game.ts';
 import { RACE_INTRO } from '../content/culture.ts';
-import { Buoy } from '../render/markers.ts';
+import { Buoy, Panga } from '../render/markers.ts';
 import { Kiter } from '../game/kiter.ts';
 import { RIDER_LOOKS } from '../render/riderModel.ts';
 import { KITE_PALETTES } from '../render/kiteModel.ts';
@@ -34,6 +34,8 @@ export class Race implements Mode {
   private time = 0;
   private done = false;
   private startLine = { x: 0, z: 0 };
+  /** Committee boat anchored at the outer end of the start line. */
+  private committee = new Panga(0xc1121f);
 
   start(game: Game) {
     const d = game.world.data;
@@ -46,6 +48,7 @@ export class Race implements Mode {
     const line = new Buoy(this.startLine.x, this.startLine.z, 0x2ec4b6, '★');
     this.marks = [up, down, line];
     for (const m of this.marks) game.world.scene.add(m.group);
+    game.world.scene.add(this.committee.group);
     this.course = [0, 1, 0, 2];
     game.spawnPlayer(this.startLine.x - 25, this.startLine.z + 15, -1);
     game.player.autoStart = false;
@@ -69,6 +72,9 @@ export class Race implements Mode {
   update(game: Game, dt: number) {
     const w = game.world;
     for (const m of this.marks) m.update(game.time, (x, z) => w.surface(x, z), w.wind.downwindX, w.wind.downwindZ);
+    // Anchored boats swing to face the wind.
+    const cx = this.startLine.x + 45, cz = this.startLine.z - 8;
+    this.committee.place(cx, w.surface(cx, cz) - 0.15, cz, w.downwindHeading + Math.PI, 0, game.time);
     if (this.countdown > 0) {
       const before = Math.ceil(this.countdown);
       this.countdown -= dt;
@@ -224,6 +230,7 @@ export class Race implements Mode {
 
   dispose(game: Game) {
     for (const m of this.marks) game.world.scene.remove(m.group);
+    game.world.scene.remove(this.committee.group);
     for (const r of this.racers) {
       if (r.kiter) game.world.scene.remove(r.kiter.group);
       if (r.fx) game.world.scene.remove(r.fx.wake.mesh);
