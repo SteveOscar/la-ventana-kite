@@ -238,6 +238,15 @@ export class Game {
     this.setState('playing');
   }
 
+  /** Leaves the current session for the title screen, clearing the mode's scenery. */
+  quitToTitle() {
+    this.mode?.dispose?.(this);
+    this.mode = null;
+    this.hud.clearDialog();
+    this.hud.setObjective(null);
+    this.setState('title');
+  }
+
   /** Puts the player in the water at a spot, heading across the wind on a chosen side. */
   spawnPlayer(x: number, z: number, side: 1 | -1 = 1) {
     const down = this.world.downwindHeading;

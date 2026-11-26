@@ -105,7 +105,7 @@ export class Menus {
   }
 
   title() {
-    this.game.setState('title');
+    this.game.quitToTitle();
     this.game.audio.music('menu');
     const fact = pick(FUN_FACTS);
     const node = el(`
