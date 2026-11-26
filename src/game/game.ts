@@ -13,7 +13,7 @@ import { NO_INPUT, type RigInput, type JumpResult } from '../sim/rig.ts';
 import { assistCarve, type PilotIntent } from '../sim/autopilot.ts';
 import { Scoring } from './scoring.ts';
 import { MONTHS, MONTH_DAY } from '../content/culture.ts';
-import { Spray, RiderEffects } from '../render/effects.ts';
+import { Spray, RiderEffects, WaterShadows } from '../render/effects.ts';
 import { AudioEngine } from '../audio/audio.ts';
 import { AiRiders } from './aiRiders.ts';
 import { Windsurfers } from './windsurfers.ts';
@@ -73,6 +73,7 @@ export class Game {
   readonly scoring = new Scoring();
   readonly spray = new Spray();
   readonly playerFx = new RiderEffects();
+  readonly playerShadow = new WaterShadows();
   readonly audio = new AudioEngine();
   readonly root: HTMLElement;
   readonly ai: AiRiders;
@@ -129,7 +130,7 @@ export class Game {
 
     this.player = new Kiter(9, RIDER_LOOKS[0], KITE_PALETTES[0]);
     this.world.scene.add(this.player.group);
-    this.world.scene.add(this.spray.points, this.playerFx.wake.mesh);
+    this.world.scene.add(this.spray.points, this.playerFx.wake.mesh, this.playerShadow.group);
     this.listeners.splash.push((strength) => {
       const p = this.player.rig.pos;
       this.spray.burst(p.x, this.world.surface(p.x, p.z), p.z, Math.round(30 + strength * 90), 1.5 + strength * 3);
@@ -481,6 +482,11 @@ export class Game {
     }
     const focus = this.state === 'title' ? this.cam.camera.position : this.player.rig.pos;
     w.updateVisuals(dt, this.time, this.cam.camera, focus);
+    this.playerShadow.group.visible = this.state !== 'title';
+    if (this.state !== 'title') {
+      const span = this.player.kite.span;
+      this.playerShadow.update(this.player.rig, w.env, w.skyState.sunDir, span.x, span.z, this.player.rig.kite.size);
+    }
     this.updateAudio(dt);
 
     if (this.state === 'playing') {

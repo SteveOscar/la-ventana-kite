@@ -243,3 +243,82 @@ export class RiderEffects {
     }
   }
 }
+
+function crescentTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext('2d')!;
+  g.filter = 'blur(6px)';
+  g.fillStyle = '#000';
+  g.beginPath();
+  // An LEI kite's shadow: a shallow crescent.
+  g.moveTo(16, 92);
+  g.quadraticCurveTo(128, -20, 240, 92);
+  g.quadraticCurveTo(128, 28, 16, 92);
+  g.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function blobTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(0,0,0,1)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+let sharedCrescent: THREE.Texture | null = null;
+let sharedBlob: THREE.Texture | null = null;
+
+/**
+ * Soft shadows of the kite and rider on the water (the water shader doesn't sample the
+ * shadow map), projected along the sun direction.
+ */
+export class WaterShadows {
+  readonly group = new THREE.Group();
+  private kite: THREE.Mesh;
+  private rider: THREE.Mesh;
+
+  constructor() {
+    sharedCrescent ??= crescentTexture();
+    sharedBlob ??= blobTexture();
+    const mk = (tex: THREE.Texture) => {
+      const geo = new THREE.PlaneGeometry(1, 1);
+      geo.rotateX(-Math.PI / 2);
+      const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.3, depthWrite: false, fog: true }));
+      m.renderOrder = 1;
+      m.frustumCulled = false;
+      return m;
+    };
+    this.kite = mk(sharedCrescent);
+    this.rider = mk(sharedBlob);
+    this.group.add(this.kite, this.rider);
+  }
+
+  update(rig: Rig, env: RigEnv, sunDir: THREE.Vector3, spanX: number, spanZ: number, kiteSize: number) {
+    const sy = Math.max(0.12, sunDir.y);
+    const strength = Math.min(1, (sunDir.y - 0.05) * 4);
+    this.group.visible = strength > 0;
+    if (!this.group.visible) return;
+    const place = (m: THREE.Mesh, p: THREE.Vector3, w: number, d: number, yaw: number, opacity: number) => {
+      const x = p.x - (sunDir.x / sy) * p.y, z = p.z - (sunDir.z / sy) * p.y;
+      m.position.set(x, env.surface(x, z) + 0.07, z);
+      m.rotation.set(0, yaw, 0);
+      m.scale.set(w, 1, d / sy ** 0.35);
+      (m.material as THREE.MeshBasicMaterial).opacity = opacity * strength;
+    };
+    const k = rig.kite;
+    const s = Math.sqrt(kiteSize / 9);
+    place(this.kite, k.position, 9 * s, 3.2 * s, Math.atan2(-spanZ, spanX), k.mode === 'down' ? 0 : 0.26);
+    place(this.rider, rig.pos.clone().setY(Math.max(0, rig.pos.y - env.surface(rig.pos.x, rig.pos.z)) + 1), 1.6, 1.6, 0, 0.32);
+  }
+}

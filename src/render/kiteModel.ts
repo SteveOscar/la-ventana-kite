@@ -160,6 +160,9 @@ export class KiteModel {
   private flutterT = 0;
 
   /** Positions and orients the kite from the simulation, and strings the lines from the bar. */
+  /** World-space span direction (wingtip to wingtip), for the water shadow. */
+  readonly span = new THREE.Vector3(1, 0, 0);
+
   update(dt: number, kite: Kite, barLeft: THREE.Vector3, barRight: THREE.Vector3, barCenter: THREE.Vector3) {
     const y = this.tmpY;
     const z = this.tmpZ;
@@ -183,6 +186,7 @@ export class KiteModel {
     this.tmpM.makeBasis(x, yy, z);
     this.group.quaternion.setFromRotationMatrix(this.tmpM);
     if (kite.mode !== 'down') this.group.rotateZ(-kite.bank * 0.28);
+    this.span.set(1, 0, 0).applyQuaternion(this.group.quaternion);
 
     // Flutter the trailing edge when the kite luffs or is depowered.
     this.flutterT += dt;
