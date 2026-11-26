@@ -16,6 +16,7 @@ import { MONTHS, MONTH_DAY } from '../content/culture.ts';
 import { Spray, RiderEffects } from '../render/effects.ts';
 import { AudioEngine } from '../audio/audio.ts';
 import { AiRiders } from './aiRiders.ts';
+import { Windsurfers } from './windsurfers.ts';
 import { Logbook } from './logbook.ts';
 import type { SessionSummary } from '../ui/menu.ts';
 import { SPECIES } from '../content/culture.ts';
@@ -134,7 +135,7 @@ export class Game {
     this.world.wildlife.onSighting = (id) => this.handleSighting(id);
     this.ai = new AiRiders(this, 16);
     this.ai.reset(this);
-    this.systems.push(this.ai);
+    this.systems.push(this.ai, new Windsurfers(this, 6));
     this.player.rig.events = {
       land: (_r, j) => this.handleLand(j),
       crash: (_r, why) => {
@@ -154,9 +155,13 @@ export class Game {
       sink: () => this.hud.showToast('Te hundiste · You sank. W to waterstart', 2.5),
       kiteDown: () => {
         this.hud.showToast('¡Cometa al agua! Kite down', 2.5);
+        this.audio.event('kiteDown');
         for (const l of this.listeners.splash) l(0.6);
       },
-      relaunched: () => this.hud.showToast('¡Arriba! Kite relaunched', 2),
+      relaunched: () => {
+        this.hud.showToast('¡Arriba! Kite relaunched', 2);
+        this.audio.event('relaunch');
+      },
       boardRecovered: () => this.hud.showToast('Board recovered', 2),
     };
 
@@ -259,7 +264,21 @@ export class Game {
     if (near(lm.mainBeach, 450)) this.visit('laVentana', 'La Ventana');
     const off = r.x - (this.world.data.coastX(r.z) ?? 0);
     if (off > 1800) this.visit('cerralvo', 'Isla Cerralvo dead ahead: out in the channel');
+    // Too far out in the channel or off the map: the rescue panga brings you back.
+    this.boundsWarn -= 1 / 60;
+    const tooFar = off > 3800 || r.z < -11800 || r.z > 2600;
+    if (off > 2800 && this.boundsWarn <= 0) {
+      this.boundsWarn = 20;
+      this.hud.say([{ who: 'chuy', es: '¡Regresa! Muy lejos.', en: 'Come back in! The channel gets rough out there and nobody will see you if you go down.' }]);
+    }
+    if (tooFar && this.player.rig.mode !== 'air') {
+      const z = Math.min(-150, Math.max(-11000, r.z));
+      this.spawnPlayer((this.world.data.coastX(z) ?? 0) + 350, z, -1);
+      this.hud.showToast('Don Chuy towed you back to the bay', 3.5);
+    }
   }
+
+  private boundsWarn = 0;
 
   applyQuality(q: 'high' | 'medium') {
     this.renderer.setPixelRatio(q === 'high' ? Math.min(window.devicePixelRatio, 1.75) : 1);
@@ -456,6 +475,12 @@ export class Game {
         combo: this.scoring.combo,
         assisted: this.config.assisted,
         pilotTarget: tgt,
+        jumpCue:
+          rig.mode === 'riding' && (this.input.isDown('Space') || this.input.padDown(0))
+            ? rig.kite.elevation > 50 * DEG && rig.kite.elevation < 76 * DEG && rig.kite.h.y > 0
+              ? 'pop'
+              : 'load'
+            : null,
         others: this.others,
         markers: this.mode?.markers?.(this) ?? [],
       });

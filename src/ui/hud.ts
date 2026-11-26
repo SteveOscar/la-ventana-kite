@@ -27,6 +27,8 @@ export interface HudFrame {
   combo: number;
   assisted: boolean;
   pilotTarget?: { az: number; el: number } | null;
+  /** Jump timing cue while the edge is loaded. */
+  jumpCue?: 'load' | 'pop' | null;
   /** Other kiters for the minimap. */
   others: { x: number; z: number }[];
   markers: { x: number; z: number; color: string; label?: string }[];
@@ -362,6 +364,21 @@ export class Hud {
     };
     if (f.pilotTarget) draw(f.pilotTarget.az, f.pilotTarget.el, 'rgba(255,255,255,0.8)', 11, true);
     draw(kite.azimuth, Math.max(0, kite.elevation), kite.mode === 'down' ? '#ff5d5d' : '#ffffff', 10);
+    if (f.jumpCue) {
+      // Sweet spot for the pop: the kite swinging up through ~50-75 degrees.
+      g.strokeStyle = f.jumpCue === 'pop' ? 'rgba(120,255,160,0.95)' : 'rgba(255,255,255,0.35)';
+      g.lineWidth = 6;
+      g.beginPath();
+      const y0 = cy - Math.sin(50 * DEG) * Re, y1 = cy - Math.sin(75 * DEG) * Re;
+      g.moveTo(cx - 60, y0);
+      g.lineTo(cx + 60, y0);
+      g.moveTo(cx - 40, y1);
+      g.lineTo(cx + 40, y1);
+      g.stroke();
+      g.font = '800 30px "Futura", "Avenir Next", system-ui, sans-serif';
+      g.fillStyle = f.jumpCue === 'pop' ? '#7dffa0' : 'rgba(255,255,255,0.75)';
+      g.fillText(f.jumpCue === 'pop' ? '¡POP! release' : 'cargando…', cx, cy - Re * 0.42);
+    }
     g.strokeStyle = 'rgba(255,255,255,0.9)';
     g.lineWidth = 2;
     const [kx, ky] = toXY(kite.azimuth, Math.max(0, kite.elevation));

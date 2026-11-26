@@ -42,9 +42,9 @@ export interface SkyState {
 const c = (hex: number) => new THREE.Color(hex);
 const KEYS = [
   // elevation (deg), sun color, zenith, horizon, sky ambient
-  { el: -6, sun: c(0xff6a3a), zen: c(0x1c2a52), hor: c(0x6b5a7a), amb: c(0x2a3350) },
-  { el: 0, sun: c(0xff7b42), zen: c(0x2b4a8a), hor: c(0xf4a77a), amb: c(0x4a5a80) },
-  { el: 6, sun: c(0xffa868), zen: c(0x3366b0), hor: c(0xf7c9a0), amb: c(0x7086b0) },
+  { el: -6, sun: c(0xff5a2a), zen: c(0x1a2550), hor: c(0x8a5560), amb: c(0x2a2d48) },
+  { el: 0, sun: c(0xff7a36), zen: c(0x2c4785), hor: c(0xffa565), amb: c(0x5c5a7c) },
+  { el: 6, sun: c(0xffa25c), zen: c(0x3563ad), hor: c(0xffc890), amb: c(0x7a88b0) },
   { el: 15, sun: c(0xffd9a8), zen: c(0x2f6fc9), hor: c(0xc9e2f2), amb: c(0x8fb0d8) },
   { el: 35, sun: c(0xfff1dc), zen: c(0x2a6ad0), hor: c(0xbfe0f5), amb: c(0x9ec0e6) },
   { el: 70, sun: c(0xfff8ee), zen: c(0x2563c9), hor: c(0xc4e4f7), amb: c(0xa3c6ea) },
@@ -74,8 +74,8 @@ export function skyStateFor(elevation: number, out?: SkyState): SkyState {
   s.ambientSky.copy(a.amb).lerp(b.amb, t);
   s.ambientGround.set(0xb89a72).multiplyScalar(lerp(0.25, 1, smoothstep(-4, 20, el)));
   s.sunIntensity = 3.3 * smoothstep(-3, 10, el) * lerp(0.75, 1, smoothstep(10, 40, el));
-  s.fog.copy(s.horizon).lerp(new THREE.Color(0xd9ecf5), 0.25);
   s.golden = 1 - smoothstep(4, 22, el);
+  s.fog.copy(s.horizon).lerp(new THREE.Color(0xd9ecf5), 0.25 * (1 - s.golden));
   return s;
 }
 
