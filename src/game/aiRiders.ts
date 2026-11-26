@@ -3,7 +3,7 @@ import { DEG, carveToward, clamp, mulberry32, wrapAngle } from '../core/math.ts'
 import { Kiter } from './kiter.ts';
 import { RIDER_LOOKS } from '../render/riderModel.ts';
 import { KITE_PALETTES } from '../render/kiteModel.ts';
-import { RiderEffects, type Spray } from '../render/effects.ts';
+import { RiderEffects, WaterShadows, type Spray } from '../render/effects.ts';
 import { NO_INPUT, type RigInput } from '../sim/rig.ts';
 import { assistCarve, type PilotIntent } from '../sim/autopilot.ts';
 import type { Game } from './game.ts';
@@ -30,6 +30,7 @@ export interface AiKiter {
   k: Kiter;
   brain: Brain;
   fx: RiderEffects;
+  shadow: WaterShadows;
   active: boolean;
 }
 
@@ -49,7 +50,8 @@ export class AiRiders {
       const palette = KITE_PALETTES[(i + 1) % KITE_PALETTES.length];
       const k = new Kiter(9, look, palette, 0x3a3a3a);
       const fx = new RiderEffects();
-      this.group.add(k.group, fx.wake.mesh);
+      const shadow = new WaterShadows();
+      this.group.add(k.group, fx.wake.mesh, shadow.group);
       const homeZ = hotspots[i % hotspots.length] + (r() - 0.5) * 700;
       const brain: Brain = {
         tack: r() < 0.5 ? 1 : -1,
@@ -64,7 +66,7 @@ export class AiRiders {
         skill: r(),
         turn: { dir: 0 },
       };
-      this.riders.push({ k, brain, fx, active: true });
+      this.riders.push({ k, brain, fx, shadow, active: true });
     }
   }
 
@@ -114,6 +116,8 @@ export class AiRiders {
       }
       if (visible) a.k.updateVisuals(dt);
       if (dist < 600) a.fx.update(dt, rig, w.env, dist < 120 ? spray : null);
+      a.shadow.group.visible = dist < 250;
+      if (dist < 250) a.shadow.update(rig, w.env, w.skyState.sunDir, a.k.kite.span.x, a.k.kite.span.z, rig.kite.size);
       others.push({ x: rig.pos.x, z: rig.pos.z });
     }
     game.others = others;
